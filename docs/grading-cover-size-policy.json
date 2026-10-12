@@ -1,0 +1,76 @@
+{
+  "created": "2026-10-12",
+  "status": "Release approved 2026-10-12. Deployment outcome is tracked by the GitHub commit's Vercel status.",
+  "rulesVersion": "2026-10-12-cover-size-v4",
+  "policy": {
+    "scope": [
+      "bovenkap",
+      "randen"
+    ],
+    "largestMissingOpeningCm": {
+      "upToAndIncluding": 3,
+      "impact": "c",
+      "above": 3,
+      "aboveImpact": "x"
+    },
+    "sharpEdge": "Direct C in these two components per explicit manager policy; other safety/functional repair rules unchanged",
+    "closing": "Slight bend with normal closing C; cannot close requires direct repair, grade withheld until repair",
+    "history": "No saved records are rewritten. Old broken-cover repair fallback retained. Pre-policy unfinished guided drafts are not restored.",
+    "entryQuestions": "Bovenkap C first chooses wear versus structural damage. Lid and edge X entry questions contain no C options. Side C -> broken edge offers <=3 C versus >3 X. Faulty ports appear only under side X, require testing and direct repair.",
+    "ports": "Test the actual ports; visual damage example cannot establish functionality. Confirmed faulty ports use direct repair, not cosmetic C.",
+    "bottomCover": "Break or missing opening at greatest span <=5 cm C, >5 cm direct repair/X. Safety risk independent of size. C and X broken-bottom entries require measurement.",
+    "palmrest": "C asks four observations: heavy scratches, sticky coating/paint, fracture, missing corner. Last two require greatest-span measurement <=3cm C / >3cm reject-X. X only large fractures, large missing corner and independent safety risk. Historical Palmrest gebroken/hoek ontbreekt fallback retains previous C after repair.",
+    "bezel": "Clear cracks / heavy breakage is C (30 points). X offers only a loose bezel (direct repair) or dangerous sharp edge (reject). Historical broken-bezel repair records retain C after repair; saved records are not rewritten."
+  },
+  "overrides": [
+    {
+      "component": "randen",
+      "choice": "Niet herstelbaar verbogen",
+      "impact": "c"
+    },
+    {
+      "component": "randen",
+      "choice": "Scherpe rand",
+      "impact": "c"
+    },
+    {
+      "component": "bovenkap",
+      "choice": "Scherpe rand",
+      "impact": "c"
+    },
+    {
+      "component": "bovenkap",
+      "choice": "Bovenkap gebroken",
+      "impact": "c",
+      "image": "assets/dell-grading-fast/bovenkap-opening-klein-3cm-v1-ai.jpg"
+    },
+    {
+      "component": "randen",
+      "choice": "Open/te zwaar verbogen",
+      "retired": true,
+      "replacement": "Niet herstelbaar verbogen",
+      "impact": "c"
+    },
+    {
+      "component": "onderkant",
+      "choice": "Veiligheidsrisico",
+      "image": "assets/dell-grading-fast/onderkant-veiligheidsrisico-v3-ai.jpg",
+      "impact": "x"
+    },
+    {
+      "component": "palmrest",
+      "choice": "Veiligheidsrisico",
+      "image": "assets/dell-grading-fast/palmrest-veiligheidsrisico-v4-ai.jpg",
+      "impact": "x"
+    }
+  ],
+  "photoNote": "AI examples are illustrative, not calibrated measurements; measure the real laptop, never infer cm from photo size.",
+  "photoLedger": "docs/grading-lid-size-examples.json",
+  "photoLedgers": [
+    "docs/grading-lid-size-examples.json",
+    "docs/grading-edge-size-examples.json",
+    "docs/grading-edge-ports-example.json",
+    "docs/grading-bottom-size-policy.json",
+    "docs/grading-palmrest-size-policy.json"
+  ]
+}

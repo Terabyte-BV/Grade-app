@@ -1,0 +1,50 @@
+{
+  "created": "2026-10-12",
+  "mode": "built-in image_gen",
+  "status": "New 3cm C candidate wired locally; retained previously accepted 4–5cm X photo. Not deployed; visual manager review pending.",
+  "scope": "Step 3 Edges & Corners. Independent small missing-corner and much larger missing-side-rail photographs, not a reused photo or alternate crop.",
+  "note": "AI-generated illustrative size categories, not calibrated measurements. Measure the greatest missing/open span on the real laptop. Explicit manager policy: up to and including 3 cm C; above 3 cm X. Sharp edge and permanent bending on these covers are C, not automatic X. Other functional repair rules unchanged.",
+  "supersedes": [
+    "assets/dell-grading-fast/randen-groot-gat-overzicht-v1-ai.jpg",
+    "assets/dell-grading-fast/randen-groot-gat-detail-v1-ai.jpg"
+  ],
+  "assets": [
+    {
+      "component": "randen",
+      "category": "opening up to and including 3 cm, C",
+      "annotation": "3 cm",
+      "reference": "assets/dell-grading-fast/randen-opening-groot-4-5cm-v2-ai.jpg",
+      "image": "assets/dell-grading-fast/randen-opening-klein-3cm-v1-ai.jpg",
+      "prompt": "Use case: scientific-educational. Generate a NEW realistic laptop grading photo of a 3 cm broken opening in a chassis SIDE EDGE. Reference image 1 is the existing accepted larger 4–5 cm example: match exactly the grey Dell laptop model, rigid coated metal texture, camera position and crop, white tabletop, natural light, USB port, closed lid, and annotation visual style. Do NOT just change its label. Make an actually smaller physically different broken side opening, about THREE FIFTHS of the reference damaged span and around 30mm along the side wall. It starts just past the rounded front corner, extends partway towards the USB port but stops well before the port. Moderate missing rigid-metal side-wall section exposing dark support, surrounding front corner and USB port intact; no distorted clay, no random hole cut in lid, no damage to the upper lid. Damage should be clearly distinguishable from the much larger 4–5cm opening. Exact sole measurement text '3 cm' in the same black rounded label with thin red outline and white type as reference. One red dimension bracket with white outer stroke, parallel to the SIDE EDGE perspective, endpoints precisely aligned with the left and right ends of the actual missing side-wall section. Do not use a frontal bracket to measure a diagonal edge. No '1–2', no other text or rulers. Landscape3:2, close-up showing damage and meaningful intact context. Instructional illustration, not a calibrated real-world measurement.",
+      "sourceFile": "exec-68c3580c-ccd2-4746-9888-12b84a05d39d.png",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "component": "randen",
+      "category": "large fractured opening, X example above 3 cm",
+      "annotation": "4–5 cm",
+      "reference": "assets/dell-grading-fast/randen-a.jpg",
+      "image": "assets/dell-grading-fast/randen-opening-groot-4-5cm-v2-ai.jpg",
+      "prompt": "Use case: product-mockup. Generate one ENTIRELY NEW photorealistic close-up for laptop damage inspection training, landscape 3:2. The reference image is ONLY for the actual grey coated Dell laptop family, rigid material texture and white studio background. Do NOT reproduce the reference photo or its camera angle. Create a new independent product photograph of actual-looking accidental impact damage.\nSubject: the FRONT RIGHT BASE corner and adjacent SIDE rail of a closed grey Dell business laptop. This is severe localized IMPACT FRACTURE: a jagged roughly 50 mm length of the base rail is missing around the corner, a neighboring 20 mm piece remains attached but displaced downward, and branching uneven cracks and chipped silver-grey coating surround the broken zone. Several irregular angular hard shell remnants and the black internal structural frame are visible in the open corner. NOT an artificial circular, rectangular or perfectly hollow cut-out hole. The lid stays intact above, the missing damage belongs to the lower base housing. No ripped lid, duplicated hinge or impossible extra ports.\nScale and framing are critical: show about 14 cm of the side rail, including one intact neighboring ordinary USB-A port. The missing opening along its longest dimension is about FOUR ordinary USB-A openings long. It should occupy about one third of the photographed 14 cm rail, visibly much larger than a tiny 15 mm chip. The fracture begins at the outer corner and extends irregularly along the rail, with genuinely random snapped hard edges, not a machined recess. New slightly elevated FRONT/SIDE three-quarter camera angle, focus on the BASE and fractured area, not a huge overhead lid. Real hard thin coated metal/composite construction, fine granular fracture faces, believable layered chassis, diffuse white studio lighting, coherent unwarped intact geometry elsewhere, no clay, putty, melted wax, crumpled foil, glossy CAD or polished saw cut.\nMeasurement annotation: slim red dimension span with white outline and short perpendicular end caps aligned along the LONGEST span of missing material, not the lid seam and not vertical height. Put one black rounded label outlined red with large clear bold white text EXACTLY \"4–5 cm\" in the nearby empty white background. Do not cover the damage. No other text, no ruler, props, hands, tools, collage or watermark."
+    }
+  ],
+  "discardedCandidates": [
+    {
+      "component": "randen",
+      "category": "small missing corner, 1–2 cm example",
+      "annotation": "1–2 cm",
+      "reference": "assets/dell-grading-fast/randen-d.jpg",
+      "image": "assets/dell-grading-fast/randen-opening-klein-1-2cm-v2-ai.jpg",
+      "prompt": "Use case: product-mockup. Generate one ENTIRELY NEW realistic photographic close-up for laptop inspection training, landscape 3:2. Input image 1 is ONLY a reference for the Dell laptop family, coated grey rigid metal finish and white studio style. DO NOT copy, reproduce, crop or reuse its original damaged rear corner, viewpoint, fragments, scratches or annotation. Create an independent new camera shot.\nSubject: the FRONT RIGHT base-side corner of the same grey Dell laptop family, with lid closed and intact. The laptop rests flat on a white table. An ordinary small accident has chipped off ONLY a 15 mm long piece of the lower base rail at the extreme corner, exposing a small black inner edge. This is a SMALL missing corner, 1–2 cm, not a huge hole, not a crack extending across the lid. The missing chip must look genuinely snapped from rigid coated metal/composite: a short irregular angled fracture with 2 tiny attached jagged edges, hard material thickness, plausible edge continuity. Preserve an otherwise straight intact lid, intact base, all feet and ordinary side ports.\nFraming: a fresh lower three-quarter SIDE view of about 14 cm of the base side rail and front corner. Include one intact adjacent USB-A port for natural scale. The small missing piece must be approximately the same length as the ordinary USB-A opening, NOT 5 times longer. Damage is small and localized, leaving over 85 percent of the photographed side wall intact. Camera level and geometry coherent, sharp realistic photo with fine grey metal grain and soft studio shadows; no clay, melted edges, putty, CGI gloss, oversized damage, machined rectangular cutout or clean geometric artificial hole.\nAnnotation: a slim red measurement span with white outline and small perpendicular end caps bracketing ONLY the 15 mm missing chip. Above the span in unused white background put a small black rounded label outlined red with bold white text EXACTLY \"1–2 cm\". No other text, no arrows pointing at an entire corner, hands, tools, fake ruler, collage or watermark.",
+      "reason": "Replaced per user request: active choice says up to and including 3 cm; example must show 3 cm rather than 1–2 cm."
+    }
+  ],
+  "comparisonPair": {
+    "smallAnnotation": "3 cm",
+    "largeAnnotation": "4–5 cm",
+    "sameAnnotationStyle": true,
+    "meaning": "Compare actual missing side-wall span, not lid seam."
+  }
+}

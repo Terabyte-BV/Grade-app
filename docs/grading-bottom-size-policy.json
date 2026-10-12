@@ -1,0 +1,35 @@
+{
+  "created": "2026-10-12",
+  "status": "Local implementation, not deployed; illustration candidate not yet user-approved",
+  "rulesVersion": "2026-10-12-cover-size-v2",
+  "policy": {
+    "component": "onderkant",
+    "measurement": "Largest span of structural fracture or missing opening, measured on actual laptop; not inferred from photo",
+    "upToAndIncludingCm": 5,
+    "upToImpact": "c",
+    "aboveCm": 5,
+    "aboveImpact": "x",
+    "aboveRoute": "direct",
+    "safety": "Sharp hazardous edge/opening remains rejection independently of size",
+    "entryPoints": [
+      "C -> Cracked / broken",
+      "X -> Onderkant gebroken"
+    ],
+    "history": "Saved records unchanged; legacy Onderkant gebroken repair fallback preserves X. Old guided drafts not restored under new rule version."
+  },
+  "safetyPhoto": {
+    "mode": "built-in image_gen",
+    "image": "assets/dell-grading-fast/onderkant-veiligheidsrisico-v3-ai.jpg",
+    "previousImage": "assets/dell-grading-fast/onderkant-veiligheidsrisico-v2-ai.jpg",
+    "reference": "assets/dell-grading-fast/onderkant-d.jpg",
+    "prompt": "Use case: scientific-educational. Asset type: photorealistic laptop grading follow-up example 'Bottom cover safety risk'. Input image is reference for the same grey Dell Latitude UNDERSIDE, material, rubber feet, vents and severity family; not an edit target. Generate a NEW landscape 3:2 close-up workshop inspection photograph of the underside of that grey Dell business laptop lying upside down on a clean white table. Near-overhead three-quarter camera, level and geometrically straight, frame lower-right quarter of bottom cover with round black rubber foot, nearby real screw and a strip of ventilation slots for unmistakable underside context. Primary defect: catastrophic irregular fracture / large open broken-out bottom-cover corner, roughly 7 by 6 cm of grey rigid shell missing, opening joined to outside perimeter. Show dark recessed internal supports through the opening, NOT a clean black hole painted on a flat panel. Several thin sharp jagged grey-coated metal edges and splinters protrude 5-10mm, exposing bright fresh raw-metal fracture faces and stiff cracked coating, visibly dangerous to handle. Three branching structural fractures extend from the broken corner towards screw and vent. Much stronger and larger damage than a hairline crack or tiny corner chip. Rigid diecast magnesium/aluminum shell with authentic fine grain, brittle torn edges, physically credible thickness. Clearly in the same damage family as reference X underside but independent photo. No lid or keyboard, no melted soft clay, no drilled circular hole, no perfectly smooth cutout, no exaggerated flexible sheet-metal curls, no fire or swollen battery, no people, no tools, no labels, no text, no grade letters, no collage. Soft realistic studio light with sharp material detail and natural shadows. Main defect dominates the photo and remains understandable at thumbnail size.",
+    "encoding": {
+      "format": "JPEG",
+      "width": 1200,
+      "height": 800,
+      "quality": 82,
+      "bytes": 160515
+    }
+  },
+  "note": "Only compressed active-question JPEGs load; main A/B/C/X photos unchanged. Cosmetic heavy wear remains 8 points."
+}

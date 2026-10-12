@@ -4899,9 +4899,10 @@ test('nieuwe detailkeuzes voor schermrand bovenkap en zijkant sturen score scher
   assert.equal(app.getChoiceDecision('bovenkap', 'B').options[0].impact, 'a-minus');
   assert.equal(app.getChoiceDecision('bovenkap', 'B').options[1].impact, 'b');
   assert.equal(app.getChoiceDecision('bovenkap', 'B').options[2].impact, 'b');
-  assert.equal(app.getChoiceDecision('bovenkap', 'C').options[0].impact, 'b-minus');
-  assert.equal(app.getChoiceDecision('bovenkap', 'C').options[1].impact, 'c');
-  assert.equal(app.getChoiceDecision('bovenkap', 'C').options[2].impact, 'c');
+  const lidWear = app.getChoiceDecision('bovenkap', 'C').options[0].nextDecision;
+  assert.equal(lidWear.options[0].impact, 'b-minus');
+  assert.equal(lidWear.options[1].impact, 'c');
+  assert.equal(lidWear.options[2].impact, 'c');
 
   const repairableSide = app.getChoiceDecision('randen', 'C').options[0];
   const nonRepairableSide = app.getChoiceDecision('randen', 'C').options[1];
@@ -4910,7 +4911,8 @@ test('nieuwe detailkeuzes voor schermrand bovenkap en zijkant sturen score scher
   assert.match(repairableSide.repairIssue, /Zijkant open\/verbogen rechtmaken/);
   assert.match(repairableSide.image, /randen-open-verbogen-herstelbaar-v3-ai\.jpg$/);
   assert.equal(nonRepairableSide.impact, 'c');
-  assert.match(nonRepairableSide.image, /randen-open-verbogen-niet-herstelbaar-dell-ai\.jpg$/);
+  assert.equal(nonRepairableSide.label, 'Niet herstelbaar verbogen');
+  assert.match(app.withGradingExampleImages({ componentId: 'randen', options: [nonRepairableSide] }).options[0].image, /randen-onherstelbaar-v4-ai\.jpg$/);
   assert.equal(vm.runInContext("IMPACT_PROFILES['b-minus'].minGrade", app), 'B');
 });
 
@@ -4995,10 +4997,9 @@ test('LCD toetsafdruk workflow opent na B eerst de groottekeuze', () => {
   assert.equal(vm.runInContext('STATE.currentGrading.result.score', app), 2);
 });
 
-test('gebroken zijkant telt na reparatie als C in plaats van A+', () => {
+test('legacy gebroken zijkant houdt impact C na reparatie zonder oude records te migreren', () => {
   const app = loadAppSandbox();
-  const brokenSide = app.getChoiceDecision('randen', 'D').options[0];
-  assert.match(brokenSide.label, /Zijkant gebroken/);
+  assert.equal(app.findRepairOption('randen', 'Zijkant gebroken').afterRepairImpact, 'c');
 
   vm.runInContext(`
     STATE.currentUser = USERS.find(user => user.id === 'tim');

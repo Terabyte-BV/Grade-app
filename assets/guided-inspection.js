@@ -1,5 +1,5 @@
 // Guided inspection records observations separately from the grading rules.
-const GUIDED_INSPECTION_VERSION = '20261003-observations-v2';
+const GUIDED_INSPECTION_VERSION = '20261012-cover-size-v8';
 const GUIDED_INSPECTION = {
   bovenkap: { instruction: 'Inspect a clean lid. Remove dust and sticker residue, then tilt it in the light.', points: 'Actual scratches · cracks · corners · closing normally' },
   onderkant: { instruction: 'Turn the laptop over. Look along the edges, screw points and rubber feet.', points: 'Cracks · missing pieces · rubber feet' },
@@ -14,15 +14,15 @@ const GUIDED_INSPECTION = {
 
 // Photo-local observations, not a second grading vocabulary or a damage bar.
 const GUIDED_PHOTO_FINDINGS = {
-  barst_boven: { letter: 'C', label: 'Crack', icon: 'damage' },
-  hoek_boven: { letter: 'C', label: 'Missing corner', icon: 'part_randen' },
+  barst_boven: { letter: 'C', optionPath: [1, 0], label: 'Crack', icon: 'damage' },
+  hoek_boven: { letter: 'C', optionPath: [1, 0], label: 'Missing corner', icon: 'part_randen' },
   verbuiging_boven: { letter: 'D', label: 'Does not close', icon: 'part_scharnieren' },
   barst_onder: { letter: 'C', option: 1, label: 'Crack / break', icon: 'damage' },
   hoek_onder: { letter: 'C', option: 1, label: 'Missing corner', icon: 'part_randen' },
-  hoek_randen: { letter: 'C', label: 'Missing corner', icon: 'part_randen' },
-  scherp_randen: { letter: 'D', label: 'Sharp edge', icon: 'damage' },
-  barst_palm: { letter: 'C', label: 'Crack', icon: 'damage' },
-  plakkerig_palm: { letter: 'C', label: 'Sticky coating', icon: 'touch' },
+  hoek_randen: { letter: 'C', option: 2, label: 'Missing corner', icon: 'part_randen' },
+  scherp_randen: { letter: 'C', option: 3, label: 'Sharp edge', icon: 'damage' },
+  barst_palm: { letter: 'C', option: 2, label: 'Crack', icon: 'damage' },
+  plakkerig_palm: { letter: 'C', option: 1, label: 'Sticky coating', icon: 'touch' },
   haarscheur_bezel: { letter: 'B', option: 1, label: 'Hairline crack', icon: 'damage' },
   haarscheur_gerepareerd: { letter: 'B', option: 1, label: 'Repair visible', icon: 'inspectParts' },
   barst_bezel: { letter: 'C', option: 1, label: 'Crack / break', icon: 'damage' },
@@ -51,8 +51,10 @@ async function selectGuidedPhotoFinding(triggerId, componentId) {
   if (STATE.pendingDecision || removing || finding.informationOnly || finding.letter === 'D') return;
   // Exact photographic subchoices reuse the same existing rule and image path.
   applyComponentChoice(component.id, finding.letter, false);
-  if (finding.option != null && STATE.pendingDecision) {
-    await resolvePendingDecision(finding.option);
+  if ((finding.optionPath || finding.option != null) && STATE.pendingDecision) {
+    for (const index of finding.optionPath || [finding.option]) {
+      if (STATE.pendingDecision) await resolvePendingDecision(index);
+    }
   } else if (STATE.pendingDecision) {
     // The finding itself is the observation (e.g. a cracked cover), not an
     // invented scratch/paint subchoice. The active trigger preserves its limit.
@@ -75,10 +77,10 @@ const GUIDED_CHOICE_POINTS = {
     ],
     "C": [
       "Deep scratches or heavy coating wear",
-      "Dents or a small missing corner"
+      "Opening up to 3 cm, sharp edge or slight bend"
     ],
     "D": [
-      "Structural break or sharp edges",
+      "Opening over 3 cm",
       "Bent cover that does not close"
     ]
   },
@@ -93,11 +95,11 @@ const GUIDED_CHOICE_POINTS = {
     ],
     "C": [
       "Heavy scratches, dents or coating damage",
-      "Crack or small missing corner"
+      "Local break up to 5 cm"
     ],
     "D": [
-      "Severe damage to the bottom cover",
-      "Damage prevents normal use"
+      "Break over 5 cm or missing part",
+      "Sharp edges or unsafe opening"
     ]
   },
   "randen": {
@@ -111,11 +113,11 @@ const GUIDED_CHOICE_POINTS = {
     ],
     "C": [
       "Deep scratches or strong dents",
-      "Missing corner: check the damage"
+      "Opening up to 3 cm, sharp or bent edge"
     ],
     "D": [
-      "Broken, open or badly bent housing",
-      "Check for dangerous sharp edges"
+      "Opening over 3 cm or faulty ports",
+      "Measure the opening and test the ports"
     ]
   },
   "palmrest": {
@@ -129,10 +131,10 @@ const GUIDED_CHOICE_POINTS = {
     ],
     "C": [
       "Heavy scratches or sticky coating",
-      "Dents or a small missing corner"
+      "Break or missing corner up to 3 cm"
     ],
     "D": [
-      "Large missing corner or breakage",
+      "Break or missing corner over 3 cm",
       "Sharp edges or a safety risk"
     ]
   },
@@ -150,7 +152,7 @@ const GUIDED_CHOICE_POINTS = {
       "Inspect the corners and frame"
     ],
     "D": [
-      "Broken or loose screen frame",
+      "Loose frame or dangerous sharp edges",
       "Check the exact damage next"
     ]
   },
@@ -274,6 +276,16 @@ function getGuidedSupplierAdviceLetter(componentId, note) {
   const text = String(note || '').toLowerCase();
   if (/\b(no damage|no defects|no cracks|not cracked|geen schade|geen defect|geen scheur)\b/.test(text)) return null;
   if (componentId === 'bezel' && /hairline|haarscheur/.test(text)) return 'B';
+  // Unmeasured palmrest/bezel breaks prompt a C check, never a presumed X.
+  // Functional failures, loose frames and safety risks remain separate.
+  if (['palmrest', 'bezel'].includes(componentId)
+    && /broken|gebroken|crack|barst|scheur|missing.*corner|ontbrekende.*hoek|hoek.*ontbreekt/.test(text)
+    && !/sharp|scherp|danger|gevaar|safety|veilig|loose|los|defect|faulty|not working|not functional|werkt niet|functioneert niet/.test(text)) return 'C';
+  if (['palmrest', 'bezel'].includes(componentId) && /sharp|scherp|danger|gevaar|safety|veilig|loose|los/.test(text)) return 'D';
+  // Unmeasured cover damage is an advisory at C, not a presumed large hole.
+  // Functional failures remain separate and keep their existing repair route.
+  if (['bovenkap', 'randen'].includes(componentId) && /broken|gebroken|crack|barst|scheur|sharp|scherp|bent|verbogen/.test(text)
+    && !/not working|not functional|werkt niet|functioneert niet|cannot close|sluit niet/.test(text)) return 'C';
   if (/not working|not functional|werkt niet|functioneert niet|defect|faulty|kapot|missing.*key|key.*missing|toets.*ontbreekt|broken|gebroken|cracked.*glass|gebarsten.*(glas|scherm)/.test(text)) return 'D';
   if (/major|heavy|large|deep|severe|groot|grote|diep|zwaar|hevig|sterk|crack|barst|scheur/.test(text)) return 'C';
   if (/minor|light|small|slight|licht|klein|minimaal|\bused\b|use marks|wear|gebruikssporen|slijtage|scratch|kras/.test(text)) return 'B';
@@ -584,7 +596,7 @@ function toggleGuidedTrigger(triggerId) {
   // Functional failures and cracked LCD glass use the existing explicit repair
   // decisions, avoiding a second, weaker route for the same physical defect.
   const repairRoutes = {
-    verbuiging_boven: ['D', 2], scherp_randen: ['D', 1],
+    verbuiging_boven: ['D', 1],
     pixel_lcd: ['D', null], barst_lcd: ['D', 1],
     toets_ontbreekt: ['D', null], toets_kapot: ['D', null],
     touchpad_kapot: ['D', 0], scharnier_kapot: ['D', null], verbuiging_scharnier: ['D', null],
@@ -745,7 +757,8 @@ function renderGuidedInspection() {
   const images = VISUAL_ASSETS[component.id] || {};
   const captions = {
     bezel: { B: ['Marks or a small hairline crack', 'Choose the exact damage next'], C: ['Clear cracks or heavy coating damage', 'Choose the exact damage next'] },
-    randen: { D: ['Broken, sharp or badly bent edge', 'Choose the exact damage next'] },
+    bovenkap: { D: ['Opening over 3 cm or cannot close', 'Measure the opening and check closing'] },
+    randen: { D: ['Opening over 3 cm or faulty ports', 'Measure the opening and test the ports'] },
     lcd: { D: ['Cracked glass, lines or faulty screen', 'Choose the exact damage next'] },
     keyboard: { D: ['Missing keys or faulty keyboard', 'Choose the exact damage next'] },
   };
@@ -802,7 +815,7 @@ function renderGuidedDecision(decision) {
   return `<div class="inspection-dialog-overlay"><section class="inspection-dialog inspection-followup-dialog inspection-detail" id="inspection-dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-dialog-title" tabindex="-1">
     <header class="inspection-dialog-header"><span class="inspection-dialog-icon">${uiIcon(component ? `part_${component.id}` : 'inspectParts')}</span><div><p class="inspection-followup-context"><span>Follow-up question</span>${component ? ` · ${escapeHtml(translateCopy(component.naam))} · <span>Step</span> ${getGradingOnderdelen().indexOf(component)+1} / 9` : ''}</p><h2 id="inspection-dialog-title" tabindex="-1" data-inspection-default-focus>${isReview ? 'Check the overall condition' : 'Which detail do you see?'}</h2></div><button type="button" class="inspection-dialog-dismiss" data-action="cancel_decision" aria-label="Back to main choices">${uiIcon('close')}</button></header>
     <div class="inspection-dialog-body">${path.length ? `<p class="inspection-followup-path">${escapeHtml(path.join(' · '))}</p>` : ''}
-    <p>${isReview ? 'Look at the laptop as a whole. Are the marks minor or is the wear clearly visible?' : 'Choose the actual damage. Use the examples to compare.'}</p>
+    <p>${escapeHtml(isReview ? 'Look at the laptop as a whole. Are the marks minor or is the wear clearly visible?' : decision.measurementHint || 'Choose the actual damage. Use the examples to compare.')}</p>
     ${decision.options.some(option => option.exampleFunctionalTest) ? '<p class="inspection-functional-example">Example only: test the function on the real laptop.</p>' : ''}
     <div class="inspection-detail-options options-${decision.options.length}">${decision.options.map((option, index) => `<article class="inspection-example"><button type="button" class="inspection-choice" data-decision-option="${index}" data-decision-title="${escapeHtml(decision.title)}">
       ${option.image ? `<span class="inspection-photo"><img src="${escapeHtml(option.image)}" alt="${escapeHtml(guidedDecisionLabel(option.label))}" width="640" height="426" decoding="async"></span>` : ''}
@@ -812,6 +825,35 @@ function renderGuidedDecision(decision) {
 
 // Existing persisted repair descriptions remain unchanged; display copy is EN/NL.
 const GUIDED_DECISION_COPY = {
+  'Zware krassen': 'Heavy scratches',
+  'Diepe krassen aan de binnenkant; geen breuk': 'Deep scratches on the interior; no break',
+  'Plakkerige coating / lakschade': 'Sticky coating / paint damage',
+  'Voel de coating en controleer op afbladderen of lakverlies': 'Feel the coating and check for peeling or paint loss',
+  'Meet de breuk of opening in de volgende vraag': 'Measure the break or opening in the next question',
+  'Meet het ontbrekende stuk in de volgende vraag': 'Measure the missing piece in the next question',
+  'Breuk/opening tot en met 3 cm': 'Break/opening up to and including 3 cm',
+  'Breuk/opening groter dan 3 cm': 'Break/opening over 3 cm',
+  'Ontbrekende hoek tot en met 3 cm': 'Missing corner up to and including 3 cm',
+  'Ontbrekende hoek groter dan 3 cm': 'Missing corner over 3 cm',
+  'Maximaal 3 cm; lokale schade': 'No more than 3 cm; local damage',
+  'Meer dan 3 cm; grote structurele schade': 'More than 3 cm; major structural damage',
+  'Breuk/opening tot en met 5 cm': 'Break/opening up to and including 5 cm',
+  'Breuk/opening groter dan 5 cm': 'Break/opening over 5 cm',
+  'Lokale breuk of ontbrekend stuk; maximaal 5 cm': 'Local break or missing piece; no more than 5 cm',
+  'Grote breuk of ontbrekend stuk; meer dan 5 cm': 'Large break or missing piece; more than 5 cm',
+  'Poorten defect': 'Faulty ports',
+  'Test de poorten; werkt een poort niet, dan is reparatie nodig': 'Test the ports; a non-working port needs repair',
+  'Breuken/verbuiging': 'Breaks or bending',
+  'Kies daarna de breuk, scherpe rand of verbuiging die je ziet': 'Next, choose the break, sharp edge or bending you see',
+  'Krassen, lakschade of deuken': 'Scratches, coating damage or dents',
+  'Kies daarna de slijtage die je ziet': 'Next, choose the wear you see',
+  'Meet de opening of het ontbrekende stuk': 'Measure the opening or missing piece',
+  'Opening tot en met 3 cm': 'Opening up to and including 3 cm',
+  'Kleine breuk of ontbrekend stuk; maximaal 3 cm': 'Small break or missing piece; no more than 3 cm',
+  'Opening groter dan 3 cm': 'Opening over 3 cm',
+  'Groot opengebroken gat of ontbrekend stuk; meer dan 3 cm': 'Large broken opening or missing piece; more than 3 cm',
+  'Licht verbogen, sluit goed': 'Slightly bent, closes normally',
+  'Lichte verbuiging; bovenkap sluit nog normaal': 'Slight bend; lid still closes normally',
   'Minimale gebruikssporen': 'Minimal use marks', 'Kleine krassen of lichte gebruikssporen': 'Small scratches or light signs of use',
   'Meerdere krassen': 'Several scratches', 'Meerdere kleinere of diepere gebruikssporen': 'Several small or deeper use marks',
   'Lichte lakschade': 'Light paint damage', 'Lichte lakschade aanwezig': 'Light paint damage is present',

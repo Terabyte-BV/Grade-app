@@ -1,0 +1,103 @@
+{
+  "created": "2026-10-12",
+  "status": "Local candidates; not deployed; visual manager review pending",
+  "mode": "Built-in image_gen",
+  "policy": {
+    "smallMaximumInclusiveCm": 3,
+    "smallImpact": "c",
+    "largeImpact": "x",
+    "largeRoute": "reject",
+    "safetyIndependentOfSize": true,
+    "history": "Saved grades unchanged; legacy broken/corner repair fallback preserved."
+  },
+  "measurementNote": "AI educational illustrations, not calibrated measurement evidence. Measure greatest damaged span on the actual laptop. Matching camera and annotation style is for visual comparison only.",
+  "assets": [
+    {
+      "image": "assets/dell-grading-fast/palmrest-zware-krassen-v2-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: scientific-educational. Create one photorealistic refurbishing inspection photograph, landscape 3:2, of the same grey Dell laptop interior/palmrest as reference image 1 (reference for model, materials and keyboard/touchpad geometry, not damage). White workshop background, neutral soft light, crisp real fine-grain coated rigid metal, physically plausible damage. Not CGI, not clay, not melted metal. No logos invented, no UI, no watermark. Show the whole interior keyboard, touchpad and both palmrest hand areas in a close slightly overhead view. Add only moderate but readily visible real wear: about 6 to 9 separate irregular short shallow scratch tracks on each hand area, mostly 1 to 3 cm long, a few dull scuffs. Scratches expose a thin subtle lighter metallic line with small varying reflections, NOT thick white lines or a dense crisscross spiderweb, no cracks, no fractures, no torn edges, no coating peeling, no structural damage. The majority of the grey surface must remain intact. Less severe than heavy gouges but plainly visible in a choice-card thumbnail. No text or measurements.",
+      "sourceFile": "exec-c365fbfd-5c54-41e0-a4f4-6ece309a5f67.png",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-coating-lakschade-v1-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: scientific-educational. Asset type: ONE photorealistic laptop grading detail example. Input is product/material reference, not edit target. NEW photograph of same grey Dell business laptop interior PALMREST around keyboard/touchpad on white workshop table. Landscape3:2, rigid coated magnesium/aluminum shell, believable dimensions, real grain and fresh fracture surfaces, soft studio light, crisp focus, level perspective. Only palmrest damage, keyboard and touchpad intact. No lid exterior, no underside, no clay, no melted material, no drilled circular hole, no collage, no hands, no watermark. Same view front-oblique near overhead showing entire palmrest, touchpad and lower three keyboard rows. Distinct severe coating/paint degradation on both hand-rest zones: irregular rubbed-through silver patches, dark grey peeling coating islands and dull uneven tacky-looking worn finish. Natural use-polished areas and fine peeling edges, NOT dirt or glue/sticker residue, not spilled liquid. No structural crack or missing corner, no deep scratches. Texture conveys degraded coating, but physical stickiness needs actual touch test. No labels or text.",
+      "sourceFile": "exec-1d33abe3-8ff0-4895-b26a-eb616b03a5ee.png",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-breuk-3cm-v2-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: scientific-educational. Create one photorealistic refurbishing inspection photograph, landscape 3:2, of the same grey Dell laptop interior/palmrest as reference image 1 (reference for model, materials and keyboard/touchpad geometry, not damage). White workshop background, neutral soft light, crisp real fine-grain coated rigid metal, physically plausible damage. Not CGI, not clay, not melted metal. No logos invented, no UI, no watermark. Close-up of the FRONT LEFT straight palmrest lip with touchpad edge above/right and a few keyboard keys further above for scale. Camera level, slight overhead 35 degree view; rigid undistorted laptop geometry. Only one local cracked-open section along the FRONT HORIZONTAL metal lip: exactly 30 mm long horizontally, roughly 2 mm opening, two short hairline end fractures, surrounding metal intact; no missing corner, no detached panel, no exposed sharp spikes. The 30 mm damaged span is about 1.6 normal keyboard key widths, clearly visible and takes about a quarter of photo width. Measure the ACTUAL damaged horizontal span with ONE thin red horizontal dimension bracket directly below it, two vertical dashed extension lines from the exact left and right damage endpoints down to the bracket. Center exact label '3 cm' below the bracket, no other text. Bracket ends exactly at damage ends; no physical ruler, no extra dimension lines. Show the actual gap, not a drawn cosmetic line. Keep enough intact surface on each side to compare with a later 5 cm larger-break image at the same camera crop.",
+      "sourceFile": "exec-a54fca14-e4b7-486a-8602-573621539a08.png",
+      "annotation": "3 cm",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-breuk-5cm-v1-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-breuk-3cm-v2-ai.jpg",
+      "prompt": "Use case: scientific-educational. Reference image 1 is the accepted 3 cm palmrest fracture photograph: match EXACT laptop model, crop, camera angle, keyboard/touchpad geometry, rigid fine-grain grey metal, light, white table and red horizontal bracket style. Generate a separate photorealistic comparison photograph of a BIGGER fracture/opening at the SAME front-left straight palmrest lip. Replace the local 3cm slit by a physically different 5cm damaged span, about 5/3 the width of the reference break, centered at the same location. This is an actual jagged broken-open lip about 50 mm wide, 8 to 12 mm open, with a missing strip of coated rigid metal and visible dark inner frame; fracture ends and a slightly lifted stiff broken flap, surrounding palmrest and touchpad remain level and correctly shaped. No soft deformation, no melted clay. It must be clearly more substantial than the small slit; not a recolored or simply relabeled copy. Extend the ONE red horizontal dimension bracket to the exact two endpoints of the wider damaged span; dashed vertical leaders align exactly with fracture endpoints. Exact sole label '5 cm', same placement and font as reference '3 cm'. No physical ruler, no extra labels or graphics. Landscape3:2. This example is above3cm X-grade, not catastrophic whole-laptop destruction.",
+      "sourceFile": "exec-c06020f3-33f6-4ee2-942e-ff21a9d402e5.png",
+      "annotation": "5 cm",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-hoek-3cm-v2-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: scientific-educational. Create one photorealistic refurbishing inspection photograph, landscape 3:2, of the same grey Dell laptop interior/palmrest as reference image 1 (reference for model, materials and keyboard/touchpad geometry, not damage). White workshop background, neutral soft light, crisp real fine-grain coated rigid metal, physically plausible damage. Not CGI, not clay, not melted metal. No logos invented, no UI, no watermark. Close-up of the FRONT RIGHT palmrest corner, keyboard arrows above, touchpad edge on left. Camera slightly overhead 35 degree view, horizontal front edge level, rigid metal intact except missing corner. One local chunk missing from the outer right-front corner, its WIDTH ALONG THE HORIZONTAL FRONT EDGE exactly 30 mm, depth inward about 15 mm. This is a small real broken-off rigid coated-metal corner with dark inner support visible, blunt broken ends; no dramatic projecting razor edges. Corner loss roughly 1.6 standard keyboard key widths. Make damage clearly visible occupying about a quarter of photograph width. ONE thin red horizontal dimension bracket directly below the front edge measures only the actual missing chunk WIDTH, two vertical dashed extension lines exactly from its leftmost break start and original rightmost edge down to bracket endpoints. Center exact text '3 cm' below bracket. No ruler, no other labels. Do not offset bracket from damage. Preserve level straight geometry, not warped. Leave intact surrounding area so it can be compared with a later 5 cm missing corner at identical crop.",
+      "sourceFile": "exec-64b96a09-9c3e-47b2-b849-f16c8c4ceec3.png",
+      "annotation": "3 cm",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-hoek-5cm-v1-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-hoek-3cm-v2-ai.jpg",
+      "prompt": "Use case: scientific-educational. Reference image 1 is the 3 cm missing-palmrest-corner photograph. Match EXACT laptop model, right-front corner, camera angle, crop, rigid fine-grain grey coated-metal, keyboard arrows and touchpad geometry, white table, neutral photographic lighting and the red horizontal dimension bracket style. Create a new realistic comparative photo with a clearly BIGGER missing corner: horizontal width along the front edge 50 mm instead of 30mm (5/3 times the original damage width), about 25mm deep. Actual separated metal piece is absent, showing a dark inner support cavity, fractured rigid metal ends, not clay, not melted or a clean saw cut. Intact surrounding palmrest stays straight and level. The new missing region extends further LEFT along the front edge and further inward; preserve reference camera crop and key size so the change in physical damage size is clear. Not merely changing the label. ONE thin red horizontal bracket directly beneath the front lip spanning exactly leftmost fracture start to original rightmost corner, dashed vertical leaders aligned to damage endpoints. Exact sole label '5 cm', same font size and location style as '3 cm' in the reference. No ruler, no other text or overlays, no grotesque whole-laptop destruction. Landscape3:2. This is above3cm X-grade.",
+      "sourceFile": "exec-3fe909be-ddea-4bec-9c5d-ed16e564f3a9.png",
+      "annotation": "5 cm",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    },
+    {
+      "image": "assets/dell-grading-fast/palmrest-veiligheidsrisico-v4-ai.jpg",
+      "reference": "assets/dell-grading-fast/palmrest-d.jpg",
+      "prompt": "Use case: scientific-educational. Asset type: ONE photorealistic laptop grading detail example. Input is product/material reference, not edit target. NEW photograph of same grey Dell business laptop interior PALMREST around keyboard/touchpad on white workshop table. Landscape3:2, rigid coated magnesium/aluminum shell, believable dimensions, real grain and fresh fracture surfaces, soft studio light, crisp focus, level perspective. Only palmrest damage, keyboard and touchpad intact. No lid exterior, no underside, no clay, no melted material, no drilled circular hole, no collage, no hands, no watermark. Close-up right half of palmrest, lower keyboard rows at top, touchpad at left. Catastrophic missing front-right palmrest corner with large irregular roughly8cm opening reaching towards keyboard, dark internal frame clearly exposed. Several stiff grey coated jagged edges and raw metal splinters protrude from perimeter, dangerous to handle. Branching structural fractures through remaining palmrest, major exposed sharp points, larger/heavier than a local corner chip, matches severity family of main reference X photo. No fire or battery swelling, no fabricated cables. Strong real fractured shell texture, not crumpled clay. No labels, text or ruler.",
+      "sourceFile": "exec-9f28cc5e-6f74-4051-af0d-bf84f721b056.png",
+      "width": 1200,
+      "height": 800,
+      "jpegQuality": 82
+    }
+  ],
+  "rejectedCandidates": [
+    {
+      "name": "palmrest-zware-krassen",
+      "sourceFile": "exec-990c253c-b752-46a2-9716-9399c817fd49.png",
+      "prompt": "Use case: scientific-educational. Asset type: ONE photorealistic laptop grading detail example. Input is product/material reference, not edit target. NEW photograph of same grey Dell business laptop interior PALMREST around keyboard/touchpad on white workshop table. Landscape3:2, rigid coated magnesium/aluminum shell, believable dimensions, real grain and fresh fracture surfaces, soft studio light, crisp focus, level perspective. Only palmrest damage, keyboard and touchpad intact. No lid exterior, no underside, no clay, no melted material, no drilled circular hole, no collage, no hands, no watermark. View front-oblique near overhead showing entire palmrest, touchpad and lower three keyboard rows with no excessive empty space. Severe real scratches across both hand-rest zones: varied long deep grooves, many shorter irregular scratches, bright silver revealed inside grooves. Coating otherwise intact, no large flaking patches, no sticker residue, no dust, no cracks, no missing corner. Scratches unmistakable and readable at small card size. No labels or text.",
+      "reason": "Unnaturally dense white scratches; user requested less severe, realistic visible wear."
+    },
+    {
+      "name": "palmrest-breuk-3cm",
+      "sourceFile": "exec-9cae9279-e9f6-44fe-bf7b-4dbce2888914.png",
+      "prompt": "Use case: scientific-educational. Asset type: ONE photorealistic laptop grading detail example. Input is product/material reference, not edit target. NEW photograph of same grey Dell business laptop interior PALMREST around keyboard/touchpad on white workshop table. Landscape3:2, rigid coated magnesium/aluminum shell, believable dimensions, real grain and fresh fracture surfaces, soft studio light, crisp focus, level perspective. Only palmrest damage, keyboard and touchpad intact. No lid exterior, no underside, no clay, no melted material, no drilled circular hole, no collage, no hands, no watermark. Close-up left-front PALMREST corner, lower-left keyboard keys visible along top and part of touchpad along right. About14cm of front edge visible. Local structural fracture across the palmrest corner exactly3cm end-to-end, narrow separated rigid edges exposing dark backing, otherwise intact shell. Corner piece still attached, no missing wedge, no sharp protruding shard. Place small steel metric ruler parallel to fracture span in same focal plane, readable evenly spaced numerals0,1,2,3,4,5,6. Damage spans directly aligned from0to3; ruler must not obscure fracture. Add slim red measurement bracket at exact fracture endpoints and black label with red outline and white sans-serif exact text \"3 cm\". Bracket endpoints must coincide with fracture ends. No other annotations.",
+      "reason": "Damage and measurement bracket/ruler did not align; replaced by close-up with aligned endpoint bracket and no physical ruler."
+    },
+    {
+      "name": "palmrest-hoek-3cm",
+      "sourceFile": "exec-5a865760-92f3-4487-b90f-a8837dc904a6.png",
+      "prompt": "Use case: scientific-educational. Asset type: ONE photorealistic laptop grading detail example. Input is product/material reference, not edit target. NEW photograph of same grey Dell business laptop interior PALMREST around keyboard/touchpad on white workshop table. Landscape3:2, rigid coated magnesium/aluminum shell, believable dimensions, real grain and fresh fracture surfaces, soft studio light, crisp focus, level perspective. Only palmrest damage, keyboard and touchpad intact. No lid exterior, no underside, no clay, no melted material, no drilled circular hole, no collage, no hands, no watermark. Close-up right-front palmrest corner, some lower keyboard keys visible along upper edge, portion of touchpad along left. About14cm of palmrest edge visible. A small irregular corner piece has genuinely snapped off upper palmrest shell, greatest missing span exactly3cm. Jagged grey-coated thin rigid edges, restrained exposed dark support, adjacent shell intact, no sharp protruding shards. Missing section connects outside perimeter, not a drilled hole. Place steel metric ruler alongside greatest missing span in same focal plane, evenly spaced readable numerals0,1,2,3,4,5,6. Missing section starts aligned with0 and ends with3. Add slim red bracket0to3 with endpoint ticks at actual missing section ends, black label red outline white sans-serif exact text \"3 cm\". No other annotations.",
+      "reason": "Damage and measurement bracket/ruler did not align; replaced by close-up with aligned endpoint bracket and no physical ruler."
+    }
+  ]
+}

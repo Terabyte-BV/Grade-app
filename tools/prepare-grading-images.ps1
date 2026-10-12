@@ -1,4 +1,8 @@
-param([Parameter(Mandatory=$true)][string]$ManifestPath)
+param(
+  [Parameter(Mandatory=$true)][string]$ManifestPath,
+  [ValidateRange(60,95)][int]$JpegQuality = 86,
+  [switch]$ReplaceGenerated
+)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
@@ -7,7 +11,7 @@ $sourceRoot = [IO.Path]::GetFullPath('C:/Users/ReMarkt/.codex/generated_images')
 $rows = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $codec = [Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object MimeType -eq 'image/jpeg'
 $encoding = New-Object Drawing.Imaging.EncoderParameters(1)
-$encoding.Param[0] = New-Object Drawing.Imaging.EncoderParameter([Drawing.Imaging.Encoder]::Quality, [long]86)
+$encoding.Param[0] = New-Object Drawing.Imaging.EncoderParameter([Drawing.Imaging.Encoder]::Quality, [long]$JpegQuality)
 foreach ($row in $rows) {
   $sourcePath = [IO.Path]::GetFullPath($row.path)
   if (!$sourcePath.StartsWith($sourceRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Source outside generated images.' }
@@ -15,7 +19,7 @@ foreach ($row in $rows) {
   $version = if ($row.version) { $row.version } else { 'v1' }
   if ($version -notmatch '^v[0-9]+$') { throw 'Invalid asset version.' }
   $target = Join-Path $assetRoot ($row.name + '-' + $version + '-ai.jpg')
-  if (Test-Path -LiteralPath $target) { continue }
+  if ((Test-Path -LiteralPath $target) -and !$ReplaceGenerated) { continue }
   $original = [Drawing.Image]::FromFile($sourcePath)
   $bitmap = New-Object Drawing.Bitmap(1200, 800)
   $graphics = [Drawing.Graphics]::FromImage($bitmap)

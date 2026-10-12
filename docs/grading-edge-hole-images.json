@@ -1,0 +1,23 @@
+{
+  "created": "2026-10-12",
+  "mode": "built-in image_gen",
+  "status": "Rejected by user as unrealistic cut-out holes. Do not wire these v1 assets into the application. See grading-edge-size-examples.json for the independent size examples.",
+  "scope": "Step 3 Edges & Corners: newly generated full laptop and close-up examples of an open missing section larger than 3 cm.",
+  "note": "Illustrative photographs, not a measurement or a functional diagnosis. Measure the real device; generation does not establish repairability or safety.",
+  "assets": [
+    {
+      "component": "randen",
+      "role": "main X comparison",
+      "reference": "assets/dell-grading-fast/randen-a.jpg",
+      "image": "assets/dell-grading-fast/randen-groot-gat-overzicht-v1-ai.jpg",
+      "prompt": "Use case: product-mockup. Asset type: main X-grade comparison photo for an internal laptop inspection application. Input image is a reference only for the grey Dell Latitude family, metal texture, clean white studio backdrop and elevated rear three-quarter composition. Generate a NEW single photorealistic product photograph, landscape 3:2. Show the ENTIRE closed grey-metal Dell laptop fully inside the frame, not cropped. Keep the lid intact. The BASE side wall immediately forward of the right rear hinge has a clearly OPEN MISSING SECTION roughly 5 cm long and 1.5 cm high, substantially longer than a USB-A port. This is a hole with an actual section of base chassis missing, dark hollow interior visible, realistic thin rigid fractured metal edges, not a dent, not the ordinary seam between lid and base, not an added port. Place an intact USB-A port farther along the same side to provide natural size context. Damage unmistakable even as a small grading image. All remaining laptop geometry and hinge attachments coherent and straight. Real coated rigid metal with fine grain, fresh silver fracture faces and hard edges, NOT clay, melted wax or soft crumpled foil. Neutral softbox lighting, white background, no UI, captions, rulers, arrows, hands or watermark."
+    },
+    {
+      "component": "randen",
+      "role": "follow-up close-up",
+      "reference": "assets/dell-grading-fast/randen-a.jpg",
+      "image": "assets/dell-grading-fast/randen-groot-gat-detail-v1-ai.jpg",
+      "prompt": "Use case: product-mockup. Asset type: X-grade follow-up photographic inspection example. Input image 1 is a reference for the exact grey Dell laptop, its rigid coated metal finish and the clearly missing rear BASE chassis section. Generate a NEW single realistic close-up photograph of that SAME damage from a slightly elevated rear three-quarter view. Landscape 3:2. The missing rectangular irregular-edged portion of the rear base rail immediately beside the right hinge is approximately 5 cm long and 1.5 cm high, leaving a large OPEN hole through the thin rigid metal housing. Include the right hinge, intact upper lid seam, some lid surface, side rail and an intact USB-A port for context. Hole must dominate the central photo and dark interior and snapped metal attachment points must be visible. Show actual missing material, not a normal seam, not a superficial dent, not an added port. Real hard thin metal fracture edges, unwarped intact surrounding laptop, fine realistic metal grain. Neutral clean white studio backdrop, softbox lighting, sharply focused defect, no text, measurement labels, arrows, rulers, tools, hands, UI, watermarks or collage. No clay, soft material, melted metal or absurdly thick metal."
+    }
+  ]
+}

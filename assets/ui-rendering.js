@@ -515,7 +515,7 @@ function renderDecisionModal(decision) {
     <div class="decision-inline" role="dialog" aria-modal="true" aria-label="${escapeHtml(decision.title)}">
       <div class="modal ${decision.type === 'grade-review' ? 'grade-review' : ''} ${hasImages ? 'image-decision' : ''} ${optionCountClass}">
         <h3>${escapeHtml(decision.title)}</h3>
-        <p>${escapeHtml(decision.text)}</p>
+        <p>${escapeHtml(decision.measurementHint || decision.text || 'Choose the actual damage. Use the examples to compare.')}</p>
         ${decision.options.some(option => option.exampleFunctionalTest) ? '<p class="inspection-functional-example">Example only: test the function on the real laptop.</p>' : ''}
         <div class="decision-options">
           ${decision.options.map((option, index) => `

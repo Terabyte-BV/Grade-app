@@ -893,6 +893,7 @@ function applyComponentChoice(componentId, letter, autoAdvance = false) {
       autoAdvance,
       title: decision.title,
       text: decision.text,
+      measurementHint: decision.measurementHint,
       options: decision.options,
     };
     render();
@@ -936,7 +937,15 @@ async function resolvePendingDecision(optionIndex) {
     const paths = STATE.currentGrading.inspectionObservationPaths || (STATE.currentGrading.inspectionObservationPaths = {});
     (paths[decision.componentId] || (paths[decision.componentId] = [])).push(option.label);
   }
-  STATE.currentGrading.keuzes[decision.componentId] = decision.letter;
+  const choiceLetter = option.choiceLetter || decision.letter;
+  STATE.currentGrading.keuzes[decision.componentId] = choiceLetter;
+  for (const triggerId of option.clearTriggers || []) delete STATE.currentGrading.triggers[triggerId];
+  // Correcting the measurement/closing check replaces that same observation,
+  // while independent damage and repair observations remain recorded.
+  if (option.supersedesRepairIssues && STATE.currentGrading.inspectionRepairs?.[decision.componentId]) {
+    STATE.currentGrading.inspectionRepairs[decision.componentId] = STATE.currentGrading.inspectionRepairs[decision.componentId]
+      .filter(action => !option.supersedesRepairIssues.includes(action.issue));
+  }
   STATE.currentGrading.impactOverrides = STATE.currentGrading.impactOverrides || {};
   STATE.currentGrading.repairIssues = STATE.currentGrading.repairIssues || {};
   STATE.currentGrading.repairActions = STATE.currentGrading.repairActions || {};
@@ -955,10 +964,11 @@ async function resolvePendingDecision(optionIndex) {
   if (option.nextDecision) {
     STATE.pendingDecision = {
       componentId: decision.componentId,
-      letter: decision.letter,
+      letter: choiceLetter,
       autoAdvance: decision.autoAdvance,
       title: option.nextDecision.title,
       text: option.nextDecision.text,
+      measurementHint: option.nextDecision.measurementHint,
       options: option.nextDecision.options,
     };
     render();

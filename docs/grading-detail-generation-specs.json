@@ -1,0 +1,227 @@
+{
+  "created": "2026-10-07",
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "component": "bovenkap",
+      "choice": "Bovenkap gebroken",
+      "name": "bovenkap-gebroken",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bovenkap-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. The gray painted METAL lid shell has a clear structural through-fracture crossing its corner, a narrow open split exposing rigid solid metal wall thickness. Focus on 10 cm around the fracture, include straight undamaged lid rim for context. Not a superficial scratch, plastic spiderweb or torn tin foil. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bovenkap-gebroken-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "bovenkap",
+      "choice": "Scherpe rand",
+      "name": "bovenkap-scherpe-rand",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bovenkap-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of a locally broken gray METAL lid rim with ONE exposed sharp jagged rigid metal edge projecting 3 mm at a corner, coating chipped at that edge, recognizable lid panel and rim. A mechanically plausible safety hazard, no long knife blade, soft clay or random ripped foil. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bovenkap-scherpe-rand-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "randen",
+      "choice": "Zijkant gebroken",
+      "name": "randen-gebroken",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/randen-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of a snapped gray solid METAL base side rail at a corner; a short through-fracture separates the rigid rim by 2 mm, distinct from the intact lid above. Include one unchanged recognizable adjacent rectangular port for scale. Crisp fixed-thickness broken metal edges, not a cracked lid or melted port holes. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/randen-gebroken-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "randen",
+      "choice": "Scherpe rand",
+      "name": "randen-scherpe-rand",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/randen-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the gray METAL base side rail at the front corner, one locally fractured rim edge bent outward slightly into a small sharp protrusion in the hand-contact area. Solid rigid metal thickness, bright metal visible through chipped coating, adjacent port intact, lid intact. Not a knife, long strip, soft foil or melted plastic. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/randen-scherpe-rand-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "bezel",
+      "choice": "Verkleuring rand",
+      "name": "bezel-verkleuring-detail",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bezel-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of matte black PLASTIC bezel along the lower right screen corner. A clearly bounded muted gray-brown worn discolored patch across 3 cm of the frame, gently feathered edges, molded texture still present. Intact black screen and straight trim. Color change only: no cracks, white gouges, dirt, loose trim or missing pieces. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bezel-verkleuring-rand-dell-ai.jpg"
+      ]
+    },
+    {
+      "component": "bezel",
+      "choice": "Haarscheurtje bezelrand",
+      "name": "bezel-haarscheur-detail",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bezel-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Macro inspection crop of the narrow matte black PLASTIC screen bezel corner. ONE fine short 7 mm hairline crack in the outer bezel plastic, dark narrow line with a little visible edge separation under grazing diffuse light. Screen glass intact, trim seated and all material present. Keep normal molded texture. Do not make a large fracture or missing corner. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bezel-haarscheurtje-b-dell-ai.jpg",
+        "assets/dell-grading-fast/bezel-haarscheurtje-c-dell-ai.jpg"
+      ]
+    },
+    {
+      "component": "bezel",
+      "choice": "Cracks / zwaar gebroken",
+      "name": "bezel-zwaar-gebroken-detail",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bezel-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of matte black PLASTIC screen bezel corner, a substantial fractured trim corner with branching breaks and a locally displaced small section, rough rigid injection-molded fracture faces. LCD glass beneath remains intact and black. More significant than a fine hairline crack. Do not create metal trim, melted edges or screen-glass spiderweb. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bezel-zwaar-gebroken-dell-ai.jpg"
+      ]
+    },
+    {
+      "component": "bezel",
+      "choice": "Schermrand gebroken",
+      "name": "bezel-gebroken",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bezel-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the upper right matte black PLASTIC bezel corner, a 3 cm bezel section snapped off, exposing a modest recessed dark screen support underneath. Preserve intact flat LCD glass, thick enough molded trim but not a metal blade. Clearly broken bezel, not cracked LCD, no invented colorful electronics. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bezel-gebroken-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "bezel",
+      "choice": "Scherpe rand",
+      "name": "bezel-scherpe-rand",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/bezel-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of a broken lower matte black PLASTIC screen bezel rim with ONE small pointed rigid plastic lip sticking outward a few millimeters. Rough snapped plastic edge and normal molded texture, intact black LCD nearby for context. No metal shard, knife blade, cartoon huge spike or broken screen glass. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/bezel-scherpe-rand-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "lcd",
+      "choice": "Dead pixels",
+      "name": "lcd-dode-pixels",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/lcd-a-black.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Very close inspection view of a powered LCD panel patch, normal uniform pale gray display with a single tiny cluster of about four black failed pixels, sharp rectangular pixel-grid edges. Show neighboring healthy pixels and subtle actual LCD surface texture. Include a narrow sliver of intact black bezel at the edge to identify screen. No stain, hole, crack, arrow, red circle or oversized black blob. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/lcd-dode-pixels-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "onderkant",
+      "choice": "Onderkant gebroken",
+      "name": "onderkant-gebroken",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/onderkant-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of gray painted METAL bottom cover near a screw and ventilation edge, a clear structural through-fracture with a narrow open seam. Intact molded/manufactured vents and screw for context, fixed metal thickness and localized coating chips exposing metal. No clay-like ripples, giant organic crack network, keyboard or hand. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/onderkant-gebroken-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "onderkant",
+      "choice": "Veiligheidsrisico",
+      "name": "onderkant-veiligheidsrisico",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/onderkant-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of bottom cover corner next to one black rubber foot. Gray rigid METAL rim locally split and lifted into a small sharp protruding jagged edge, coating scraped at fracture. Foot remains seated. Focus on the dangerous contact edge, no swollen battery, bloated case, foil, huge knife shard or unnecessary internals. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/onderkant-veiligheidsrisico-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "keyboard",
+      "choice": "Missing key",
+      "name": "keyboard-een-toets-ontbreekt",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/keyboard-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the central chiclet keyboard of this exact laptop, ONE letter G keycap missing revealing the small white plastic scissor support and rubber dome seated in its square key well. Neighboring F H T Y V B keycaps remain aligned and intact, natural crisp legends exactly as reference if visible. Crop out logo/palmrest. No extra missing keys, random letters, deformed fingers or hands. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/keyboard-een-toets-ontbreekt-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "palmrest",
+      "choice": "Palmrest gebroken",
+      "name": "palmrest-gebroken",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of gray METAL palmrest panel beside its front edge and keyboard corner, a clear structural through-fracture extending from the rim into the flat panel, narrow seam with visible rigid fracture faces and chipped coating. Keep keyboard and touchpad intact, enough panel around it for context. Not a superficial scratch, clay, loose foil or large missing piece. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/palmrest-gebroken-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "palmrest",
+      "choice": "Veiligheidsrisico",
+      "name": "palmrest-veiligheidsrisico",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/palmrest-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the gray METAL palmrest front corner in hand-contact area, localized cracked rim with a small rigid sharp bent-up lip, bright metal in scraped coating along crisp fixed-thickness edge. Flat palmrest otherwise intact, no battery swelling, giant metal knife, missing keyboard or hand. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/palmrest-veiligheidsrisico-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "touchpad",
+      "choice": "Touchpad gebarsten",
+      "name": "touchpad-gebarsten",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/touchpad-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the rectangular dark gray touchpad surface with separate two physical click buttons below as in the reference. ONE clear diagonal structural crack with a small branching split across the touchpad, confined to the touchpad surface. Surrounding gray palmrest and two buttons intact. Preserve rectangular boundaries and actual matte texture, no invented glass reflections, melted surface or unrelated scratches. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/touchpad-gebarsten-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "scharnieren",
+      "choice": "Scharnier werkt niet",
+      "name": "scharnier-blokkeert",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/scharnieren-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of the rear hinge seat of this exact Dell laptop at a partly open angle, hinge barrel visibly skewed in its seat with a small misaligned rigid metal bracket that catches against its housing. Lid and base remain attached and undamaged elsewhere. Illustrative opening/closing problem only; no claim photo proves a jam. Clear cylindrical hinge hardware, not a giant blade, clay blob or warped entire lid. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/scharnier-blokkeert-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "scharnieren",
+      "choice": "Scharnier los",
+      "name": "scharnier-los",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/scharnieren-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of ONE rear hinge mounting point. The small rigid silver hinge bracket has lifted about 3 mm out of its base mounting seat, leaving a visible dark gap and one loosened screw slightly raised, while the hinge barrel and lid remain connected. Normal matching gray chassis and surrounding surface intact. No broken casing, deformed lid, dangling rail or invented big hinge. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/scharnier-los-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "scharnieren",
+      "choice": "Behuizing verbogen",
+      "name": "scharnier-behuizing-verbogen",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/scharnieren-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of gray METAL base housing directly around a rear hinge mount. The rigid chassis lip has a localized hard angular kink lifting the hinge seat several millimeters, with scuffed coating and bright metal at crease. Hinge hardware intact, lid panel straight. Distinguish chassis deformation from loose screws. No smooth clay swelling, melted edges, rubbery waves or torn foil. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/scharnier-behuizing-verbogen-v1-ai.jpg"
+      ]
+    },
+    {
+      "component": "scharnieren",
+      "choice": "Veiligheidsrisico",
+      "name": "scharnier-veiligheidsrisico",
+      "version": "v2",
+      "reference": "assets/dell-grading-fast/scharnieren-a.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: close-up photographic example for a laptop grading FOLLOW-UP choice. Image 1 is a device/material reference, not a damage example. Generate a new photorealistic inspection detail of the same Dell laptop and gray/black finish. Close-up of rear hinge corner with a broken gray rigid hinge housing lip exposing ONE small pointed solid metal mounting edge protruding a few millimeters into contact area. Hinge barrel recognizable and attached, neighboring lid and base largely intact. Mechanically credible sharp edge, not a huge knife, hanging plate, clay or complicated fantasy internals. Tight oblique/overhead crop as appropriate, inspected problem prominently visible even in a small choice card, retain enough neighboring undamaged geometry to locate it; whole laptop NOT needed. Real documentary inspection photo, soft neutral diffuse/grazing light, authentic fine surface texture and modest wear, white surroundings if visible. Keep all unrelated parts unchanged. No logo in crop, annotations, arrows, labels, grade letters, watermark, inset, collage, hands, polished CGI or exaggerated unrelated damage. Single landscape 3:2.",
+      "previousImages": [
+        "assets/dell-grading-fast/scharnier-veiligheidsrisico-v1-ai.jpg"
+      ]
+    }
+  ]
+}

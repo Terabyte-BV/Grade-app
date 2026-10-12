@@ -13,7 +13,7 @@ const ONDERDELEN = [
       { letter: 'A', titel: 'No scratches over 0.5 cm', detail: 'No dents, paint damage or stickers' },
       { letter: 'B', titel: 'Light scratches up to 1 cm', detail: 'Light paint wear or small dents allowed' },
       { letter: 'C', titel: 'Scratches, dents or paint damage', detail: 'Small missing corner allowed' },
-      { letter: 'D', titel: 'Repair / not sellable', detail: 'Structural break or sharp edges' }
+      { letter: 'D', titel: 'Opening over 3 cm or cannot close', detail: 'Measure the opening and check closing' }
     ],
     triggers: [
       { id: 'barst_boven', label: 'Crack or break', impact: 'max-c' },
@@ -30,7 +30,7 @@ const ONDERDELEN = [
       { letter: 'A', titel: 'Light marks up to 0.5 cm', detail: 'All rubber feet present' },
       { letter: 'B', titel: 'Visible scratches or small dent', detail: 'Light paint wear; rubber feet may be missing' },
       { letter: 'C', titel: 'Heavy scratches, dents or paint damage', detail: 'Small missing corner allowed' },
-      { letter: 'D', titel: 'Repair / not sellable', detail: 'Damage is too heavy for normal use' }
+      { letter: 'D', titel: 'Break over 5 cm or safety risk', detail: 'Measure damage and check sharp edges' }
     ],
     triggers: [
       { id: 'barst_onder', label: 'Crack or break', impact: 'max-c' },
@@ -46,11 +46,11 @@ const ONDERDELEN = [
       { letter: 'A', titel: 'Light wear only', detail: 'No dents or paint damage' },
       { letter: 'B', titel: 'Scratches or light dents', detail: 'Paint wear on multiple spots' },
       { letter: 'C', titel: 'Missing corner or deep damage', detail: 'Deep scratches or strong dents' },
-      { letter: 'D', titel: 'Repair / not sellable', detail: 'Corner missing or dangerous sharp edge' }
+      { letter: 'D', titel: 'Opening over 3 cm or faulty ports', detail: 'Measure the opening and test the ports' }
     ],
     triggers: [
       { id: 'hoek_randen', label: 'Corner fully missing', impact: 'max-c' },
-      { id: 'scherp_randen', label: 'Dangerous sharp edge', impact: 'defect' }
+      { id: 'scherp_randen', label: 'Sharp edge', impact: 'max-c' }
     ]
   },
   {
@@ -62,7 +62,7 @@ const ONDERDELEN = [
       { letter: 'A', titel: 'No scratches or coating issues', detail: 'No soft-touch coating damage' },
       { letter: 'B', titel: 'Light scratches or coating wear', detail: 'Small dent allowed' },
       { letter: 'C', titel: 'Heavy scratches or sticky coating', detail: 'Dents or small missing corner allowed' },
-      { letter: 'D', titel: 'Repair / not sellable', detail: 'Large missing corner or safety risk' }
+      { letter: 'D', titel: 'Break or missing corner over 3 cm', detail: 'Large opening or a safety risk' }
     ],
     triggers: [
       { id: 'barst_palm', label: 'Crack or break', impact: 'max-c' },
@@ -78,7 +78,7 @@ const ONDERDELEN = [
       { letter: 'A', titel: 'No visible damage', detail: 'No cracks or visible repair' },
       { letter: 'B', titel: 'Light marks or small scratches', detail: 'No visible cracks' },
       { letter: 'C', titel: 'Cracks or heavy paint damage', detail: '' },
-      { letter: 'D', titel: 'Repair / not sellable', detail: 'Bezel loose or crack over 3 cm' }
+      { letter: 'D', titel: 'Repair / not sellable', detail: 'Loose frame or dangerous sharp edges' }
     ],
     triggers: [
       { id: 'haarscheur_bezel', label: 'Hairline crack', impact: 'max-b' },
@@ -171,7 +171,7 @@ const ONDERDELEN = [
 ];
 
 const STRAFPUNTEN = { A: 0, B: 1, C: 4, D: 999 };
-const GRADING_RULES_VERSION = '2026-10-03-independent-wear-after-repair-v1';
+const GRADING_RULES_VERSION = '2026-10-12-cover-size-v4';
 
 const GRADING_IMPACTS = {
   bovenkap: { A: 'a-plus', B: 'a', C: 'c', D: 'x' },
@@ -209,6 +209,80 @@ const REPAIR_SEVERITIES = {
   reject: 'reject',
 };
 
+// Size is the greatest span of the missing/open section, not crack length or
+// the normal lid seam. Shared by C and X entry points: exactly 3 cm is still C.
+function openingSizeDecision(componentId) {
+  const lid = componentId === 'bovenkap';
+  const largeOpeningIssue = lid ? 'Bovenkap opening groter dan 3 cm' : 'Zijkant opening groter dan 3 cm';
+  return {
+    title: lid ? 'Bovenkap: hoe groot is de opening?' : 'Zijkant: hoe groot is de opening?',
+    measurementHint: 'Measure the largest opening on the real laptop. Up to and including 3 cm is C; over 3 cm is X. Do not measure the crack length or the normal lid seam.',
+    options: [
+      { label: 'Opening tot en met 3 cm', detail: 'Kleine breuk of ontbrekend stuk; maximaal 3 cm', impact: 'c', choiceLetter: 'C', supersedesRepairIssues: [largeOpeningIssue], image: `assets/dell-grading-fast/${lid ? 'bovenkap-opening-klein-3cm-v1' : 'randen-opening-klein-3cm-v1'}-ai.jpg` },
+      { label: 'Opening groter dan 3 cm', detail: 'Groot opengebroken gat of ontbrekend stuk; meer dan 3 cm', impact: 'x', choiceLetter: 'D', supersedesRepairIssues: [largeOpeningIssue], repairIssue: largeOpeningIssue, repairRoute: 'reject', repairSeverity: 'reject', image: `assets/dell-grading-fast/${lid ? 'bovenkap-opening-groot-5cm-v1' : 'randen-opening-groot-4-5cm-v2'}-ai.jpg` },
+    ],
+  };
+}
+
+// Bottom-cover policy uses the greatest span of the break OR missing opening;
+// unlike the lid/edge opening-only policy, a long structural crack also counts.
+function bottomBreakSizeDecision() {
+  const replaces = ['Onderkant gebroken', 'Onderkant breuk/opening groter dan 5 cm'];
+  return {
+    title: 'Onderkant: hoe groot is de breuk of opening?',
+    measurementHint: 'Measure the break or missing opening at its widest point on the real laptop. Up to and including 5 cm is C; over 5 cm needs repair. Sharp, dangerous edges remain a safety risk, regardless of size.',
+    options: [
+      { label: 'Breuk/opening tot en met 5 cm', detail: 'Lokale breuk of ontbrekend stuk; maximaal 5 cm', impact: 'c', choiceLetter: 'C', supersedesRepairIssues: replaces, image: 'assets/dell-grading-fast/onderkant-barsten-breuken-detail-v2-ai.jpg' },
+      { label: 'Breuk/opening groter dan 5 cm', detail: 'Grote breuk of ontbrekend stuk; meer dan 5 cm', impact: 'x', choiceLetter: 'D', supersedesRepairIssues: replaces, repairIssue: 'Onderkant breuk/opening groter dan 5 cm', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'x', image: 'assets/dell-grading-fast/onderkant-gebroken-v2-ai.jpg' },
+    ],
+  };
+}
+
+function palmrestSizeDecision(kind = 'break') {
+  const corner = kind === 'corner';
+  const issue = corner ? 'Palmrest ontbrekende hoek groter dan 3 cm' : 'Palmrest breuk/opening groter dan 3 cm';
+  const replaces = [issue, corner ? 'Palmrest hoek ontbreekt' : 'Palmrest gebroken'];
+  const base = corner ? 'palmrest-hoek' : 'palmrest-breuk';
+  return {
+    title: corner ? 'Palmrest: hoe groot is de ontbrekende hoek?' : 'Palmrest: hoe groot is de breuk of opening?',
+    measurementHint: 'Measure the break or missing piece at its widest point on the real laptop. Up to and including 3 cm is C; over 3 cm is not sellable. Dangerous sharp edges remain a safety risk, regardless of size.',
+    options: [
+      { label: corner ? 'Ontbrekende hoek tot en met 3 cm' : 'Breuk/opening tot en met 3 cm', detail: 'Maximaal 3 cm; lokale schade', impact: 'c', choiceLetter: 'C', supersedesRepairIssues: replaces, image: `assets/dell-grading-fast/${base}-3cm-v2-ai.jpg` },
+      { label: corner ? 'Ontbrekende hoek groter dan 3 cm' : 'Breuk/opening groter dan 3 cm', detail: 'Meer dan 3 cm; grote structurele schade', impact: 'x', choiceLetter: 'D', supersedesRepairIssues: replaces, repairIssue: issue, repairRoute: 'reject', repairSeverity: 'reject', image: `assets/dell-grading-fast/${base}-5cm-v1-ai.jpg` },
+    ],
+  };
+}
+
+const LID_WEAR_DECISION = {
+  title: 'Bovenkap: welke slijtage zie je?',
+  options: [
+    { label: 'Grote diepe krassen', detail: 'Duidelijke diepe krassen zonder zware lakschade', impact: 'b-minus', image: 'assets/dell-grading-fast/bovenkap-grote-diepe-krassen-dell-ai.jpg' },
+    { label: 'Hevige lakschade', detail: 'Veel of zware lakschade', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-hevige-lakschade-dell-ai.jpg' },
+    { label: 'Deuken + diepe krassen', detail: 'Deuken gecombineerd met diepe krassen', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-deuken-diepe-krassen-dell-ai.jpg' },
+  ],
+};
+const LID_LIGHT_BEND = { label: 'Licht verbogen, sluit goed', detail: 'Lichte verbuiging; bovenkap sluit nog normaal', impact: 'c', choiceLetter: 'C', clearTriggers: ['verbuiging_boven'], supersedesRepairIssues: ['Bovenkap sluit niet goed'], image: 'assets/dell-grading-fast/bovenkap-licht-verbogen-v1-ai.jpg' };
+const LID_STRUCTURAL_DECISION = {
+  title: 'Bovenkap: welke breuk of verbuiging zie je?',
+  options: [
+    { label: 'Bovenkap gebroken', detail: 'Meet de opening of het ontbrekende stuk', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-opening-klein-3cm-v1-ai.jpg', nextDecision: openingSizeDecision('bovenkap') },
+    { label: 'Scherpe rand', detail: 'Scherpe of gevaarlijke rand aanwezig', impact: 'c', choiceLetter: 'C' },
+    LID_LIGHT_BEND,
+  ],
+};
+// Functional port defects belong only to X, and never release
+// a cosmetic C label before the defective port has been repaired and checked.
+const EDGE_PORT_DEFECT = { label: 'Poorten defect', detail: 'Test de poorten; werkt een poort niet, dan is reparatie nodig', impact: 'x', choiceLetter: 'D', repairIssue: 'Poorten defect', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'a-plus', exampleFunctionalTest: true, image: 'assets/dell-grading-fast/randen-poorten-defect-v1-ai.jpg' };
+
+// Retain repair fallback for pre-policy records; never rewrite saved grades.
+const LEGACY_COVER_REPAIRS = {
+  bezel: { 'Schermrand gebroken': { afterRepairImpact: 'c' } },
+  palmrest: { 'Palmrest gebroken': { afterRepairImpact: 'c' }, 'Palmrest hoek ontbreekt': { afterRepairImpact: 'c' } },
+  onderkant: { 'Onderkant gebroken': { afterRepairImpact: 'x' } },
+  bovenkap: { 'Bovenkap gebroken': { afterRepairImpact: 'c' } },
+  randen: { 'Zijkant gebroken': { afterRepairImpact: 'c' } },
+};
+
 const CHOICE_DECISIONS = {
   bovenkap: {
     B: {
@@ -224,18 +298,17 @@ const CHOICE_DECISIONS = {
       title: 'Bovenkap C Detail',
       text: 'Kies de situatie die het beste past bij de bovenkap.',
       options: [
-        { label: 'Grote diepe krassen', detail: 'Duidelijke diepe krassen zonder zware lakschade', impact: 'b-minus', image: 'assets/dell-grading-fast/bovenkap-grote-diepe-krassen-dell-ai.jpg' },
-        { label: 'Hevige lakschade', detail: 'Veel of zware lakschade', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-hevige-lakschade-dell-ai.jpg' },
-        { label: 'Deuken + diepe krassen', detail: 'Deuken gecombineerd met diepe krassen', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-deuken-diepe-krassen-dell-ai.jpg' },
+        { label: 'Krassen, lakschade of deuken', detail: 'Kies daarna de slijtage die je ziet', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-deuken-diepe-krassen-dell-ai.jpg', nextDecision: LID_WEAR_DECISION },
+        { label: 'Breuken/verbuiging', detail: 'Kies daarna de breuk, scherpe rand of verbuiging die je ziet', impact: 'c', image: 'assets/dell-grading-fast/bovenkap-opening-klein-3cm-v1-ai.jpg', nextDecision: LID_STRUCTURAL_DECISION },
       ],
     },
     D: {
       title: 'Bovenkap X Reden',
-      text: 'Kies waarom de bovenkap als X wordt beoordeeld.',
+      text: 'Meet de opening en controleer of de bovenkap nog sluit.',
+      measurementHint: 'Check the opening and closing. An opening over 3 cm is X; a lid that cannot close needs repair. For a smaller opening or a slight bend that still closes, return to C.',
       options: [
-        { label: 'Bovenkap gebroken', detail: 'Barst, breuk of structurele schade', impact: 'x', repairIssue: 'Bovenkap gebroken', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
-        { label: 'Scherpe rand', detail: 'Scherpe of gevaarlijke rand aanwezig', impact: 'x', repairIssue: 'Bovenkap scherpe rand', repairRoute: 'reject', repairSeverity: 'reject' },
-        { label: 'Sluit niet goed', detail: 'Bovenkap is verbogen of sluit niet normaal', impact: 'x', repairIssue: 'Bovenkap sluit niet goed', repairRoute: 'production', repairSeverity: 'light', afterRepairImpact: 'c' },
+        openingSizeDecision('bovenkap').options[1],
+        { label: 'Sluit niet goed', detail: 'Bovenkap is verbogen of sluit niet normaal', impact: 'x', choiceLetter: 'D', repairIssue: 'Bovenkap sluit niet goed', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
       ],
     },
   },
@@ -245,17 +318,15 @@ const CHOICE_DECISIONS = {
       text: 'Kies de situatie die het beste past bij de zijkant.',
       options: [
         { label: 'Open/verbogen herstelbaar', detail: 'Ijzer of rand staat open, maar kan rechtgemaakt worden', impact: 'b', repairIssue: 'Zijkant open/verbogen rechtmaken', repairRoute: 'production', repairSeverity: 'light', afterRepairImpact: 'b', image: 'assets/dell-grading-fast/randen-open-verbogen-herstelbaar-v3-ai.jpg' },
-        { label: 'Open/te zwaar verbogen', detail: 'Zijkant staat open en is te zwaar verbogen om netjes te herstellen', impact: 'c', image: 'assets/dell-grading-fast/randen-open-verbogen-niet-herstelbaar-dell-ai.jpg' },
+        { label: 'Niet herstelbaar verbogen', detail: 'Zijkant staat open of scheef en is niet netjes te herstellen', impact: 'c', choiceLetter: 'C' },
+        { label: 'Zijkant gebroken', detail: 'Meet de opening of het ontbrekende stuk', impact: 'c', image: 'assets/dell-grading-fast/randen-opening-klein-3cm-v1-ai.jpg', nextDecision: openingSizeDecision('randen') },
+        { label: 'Scherpe rand', detail: 'Scherpe of gevaarlijke rand aanwezig', impact: 'c', choiceLetter: 'C' },
       ],
     },
     D: {
-      title: 'Zijkant X Reden',
-      text: 'Kies waarom de zijkant of hoek als X wordt beoordeeld.',
-      options: [
-        { label: 'Zijkant gebroken', detail: 'Hoek of zijkant is gebroken', impact: 'x', repairIssue: 'Zijkant gebroken', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
-        { label: 'Scherpe rand', detail: 'Scherpe of gevaarlijke rand aanwezig', impact: 'x', repairIssue: 'Zijkant scherpe rand', repairRoute: 'reject', repairSeverity: 'reject' },
-        { label: 'Niet herstelbaar verbogen', detail: 'Zijkant staat open of scheef en is niet netjes te herstellen', impact: 'x', repairIssue: 'Zijkant niet herstelbaar verbogen', repairRoute: 'reject', repairSeverity: 'reject' },
-      ],
+      ...openingSizeDecision('randen'),
+      measurementHint: 'Measure the largest opening and test the ports. Over 3 cm is X; a faulty port needs repair. For an opening up to and including 3 cm, return to C.',
+      options: [openingSizeDecision('randen').options[1], EDGE_PORT_DEFECT],
     },
   },
   bezel: {
@@ -279,7 +350,6 @@ const CHOICE_DECISIONS = {
       title: 'Schermrand X Reden',
       text: 'Kies waarom de schermrand als X wordt beoordeeld.',
       options: [
-        { label: 'Schermrand gebroken', detail: 'Bezel is zwaar gebroken of mist stukken', impact: 'x', repairIssue: 'Schermrand gebroken', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
         { label: 'Schermrand los', detail: 'Bezel zit los of klikt niet meer vast', impact: 'x', repairIssue: 'Schermrand los', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
         { label: 'Scherpe rand', detail: 'Scherpe of gevaarlijke rand rond het scherm', impact: 'x', repairIssue: 'Schermrand scherpe rand', repairRoute: 'reject', repairSeverity: 'reject' },
       ],
@@ -336,16 +406,16 @@ const CHOICE_DECISIONS = {
       text: 'Choose the closest match: heavy wear, cracks or breaks.',
       options: [
         { label: 'Heavy wear', detail: 'No cracks or breaks', impact: 'b', image: 'assets/dell-grading-fast/onderkant-gebruikssporen.jpg' },
-        { label: 'Cracked / broken', detail: 'Crack, break or missing corner', impact: 'c', image: 'assets/dell-grading-fast/onderkant-barsten-breuken.jpg' },
+        { label: 'Cracked / broken', detail: 'Crack, break or missing corner', impact: 'c', image: 'assets/dell-grading-fast/onderkant-barsten-breuken.jpg', nextDecision: bottomBreakSizeDecision() },
       ],
     },
     D: {
       title: 'Onderkant X Reden',
       text: 'Kies waarom de onderkant als X wordt beoordeeld.',
       options: [
-        { label: 'Onderkant gebroken', detail: 'Barst, breuk of structurele schade', impact: 'x', repairIssue: 'Onderkant gebroken', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'x' },
+        { label: 'Onderkant gebroken', detail: 'Barst, breuk of structurele schade', impact: 'x', nextDecision: bottomBreakSizeDecision() },
         { label: 'Onderdeel ontbreekt', detail: 'Rubber, klep of behuizingsdeel ontbreekt ernstig', impact: 'x', repairIssue: 'Onderkant onderdeel ontbreekt', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'x' },
-        { label: 'Veiligheidsrisico', detail: 'Scherpe rand of open behuizing', impact: 'x', repairIssue: 'Onderkant veiligheidsrisico', repairRoute: 'reject', repairSeverity: 'reject' },
+        { label: 'Veiligheidsrisico', detail: 'Scherpe rand of open behuizing', impact: 'x', repairIssue: 'Onderkant veiligheidsrisico', repairRoute: 'reject', repairSeverity: 'reject', image: 'assets/dell-grading-fast/onderkant-veiligheidsrisico-v3-ai.jpg' },
       ],
     },
   },
@@ -387,13 +457,22 @@ const CHOICE_DECISIONS = {
     },
   },
   palmrest: {
+    C: {
+      title: 'Palmrest C Detail',
+      options: [
+        { label: 'Zware krassen', detail: 'Diepe krassen aan de binnenkant; geen breuk', impact: 'c', image: 'assets/dell-grading-fast/palmrest-zware-krassen-v2-ai.jpg' },
+        { label: 'Plakkerige coating / lakschade', detail: 'Voel de coating en controleer op afbladderen of lakverlies', impact: 'c', image: 'assets/dell-grading-fast/palmrest-coating-lakschade-v1-ai.jpg' },
+        { label: 'Palmrest gebroken', detail: 'Meet de breuk of opening in de volgende vraag', impact: 'c', image: 'assets/dell-grading-fast/palmrest-breuk-3cm-v2-ai.jpg', nextDecision: palmrestSizeDecision('break') },
+        { label: 'Hoek ontbreekt', detail: 'Meet het ontbrekende stuk in de volgende vraag', impact: 'c', image: 'assets/dell-grading-fast/palmrest-hoek-3cm-v2-ai.jpg', nextDecision: palmrestSizeDecision('corner') },
+      ],
+    },
     D: {
       title: 'Palmrest X Reden',
       text: 'Kies waarom de palmrest als X wordt beoordeeld.',
       options: [
-        { label: 'Palmrest gebroken', detail: 'Palmrest heeft een breuk of structurele schade', impact: 'x', repairIssue: 'Palmrest gebroken', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
-        { label: 'Hoek ontbreekt', detail: 'Grote hoek of stuk van de palmrest ontbreekt', impact: 'x', repairIssue: 'Palmrest hoek ontbreekt', repairRoute: 'direct', repairSeverity: 'heavy', afterRepairImpact: 'c' },
-        { label: 'Veiligheidsrisico', detail: 'Scherpe rand of open behuizing rond de palmrest', impact: 'x', repairIssue: 'Palmrest veiligheidsrisico', repairRoute: 'reject', repairSeverity: 'reject' },
+        palmrestSizeDecision('break').options[1],
+        palmrestSizeDecision('corner').options[1],
+        { label: 'Veiligheidsrisico', detail: 'Scherpe rand of open behuizing rond de palmrest', impact: 'x', choiceLetter: 'D', repairIssue: 'Palmrest veiligheidsrisico', repairRoute: 'reject', repairSeverity: 'reject', image: 'assets/dell-grading-fast/palmrest-veiligheidsrisico-v4-ai.jpg' },
       ],
     },
   },
@@ -542,7 +621,7 @@ function findRepairOption(componentId, issue) {
     const found = search(decision.options);
     if (found) return found;
   }
-  return null;
+  return LEGACY_COVER_REPAIRS[componentId]?.[issue] || null;
 }
 
 function createRepairAction(componentId, issue, options = {}) {
@@ -791,4 +870,3 @@ function buildProblemRows(keuzes, triggers, impactOverrides = {}) {
   }
   return problems;
 }
-

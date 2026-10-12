@@ -1,0 +1,10 @@
+{
+  "created": "2026-10-12",
+  "status": "Local candidate, not deployed or user-approved",
+  "mode": "built-in image_gen",
+  "image": "assets/dell-grading-fast/randen-poorten-defect-v1-ai.jpg",
+  "reference": "assets/dell-grading-fast/randen-open-verbogen-herstelbaar-v3-ai.jpg",
+  "prompt": "Use case: scientific-educational. Asset type: realistic laptop grading follow-up example for defective ports. Input reference image is material/product family and studio photography reference ONLY, not an edit target. Generate an independent high resolution landscape3:2 close-up repair workshop photograph of the side edge of a grey Dell Latitude business laptop on a white table. Frame approximately14cm of side chassis edge with two USB-A sockets and one HDMI socket. Laptop shell is rigid coated magnesium/aluminum with believable finely textured grey metallic finish, straight intact panels, ordinary correct ports not melted material. One USB-A socket is visibly damaged: its black internal plastic tongue is partially snapped and bent gold contact pins clearly exposed, socket metal housing moderately distorted inward. Adjacent USB-A and HDMI sockets remain intact to make the defect obvious. Damage must be small localized credible mechanical wear, not a giant crater, no sagging or clay, no missing large enclosure chunks, no fake extra ports, no wires, no hands. Angle level three-quarter close-up, all ports sharp in focus, white background soft natural studio light, soft real shadow. No text, no ruler, no grade letters, no graphic overlays. The image illustrates visible port damage; functionality must still be tested on real device.",
+  "note": "Visible USB damage is illustrative only; test the real port. Available only from X; removed from C per manager correction. Direct repair, no released C grade. Only active question loads the compressed JPEG.",
+  "previousNote": "Visible USB damage is illustrative only; test the real port. Available from C and X entry; direct repair, no released C grade. Only active question loads the compressed JPEG."
+}
