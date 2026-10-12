@@ -207,6 +207,7 @@ test('information banners share an accessible close icon and closing never repai
     ['dismiss_record_protection',app.renderRecordProtectionAlerts(),'.storage-protection']
   ]) {
     assert.match(markup,/aria-label="Close" title="Close"><svg/);
+    assert.match(markup,/<svg[^>]*fill="none"[^>]*stroke="currentColor"[^>]*stroke-width="1.8"/,'Close glyph must draw itself outside screen-specific SVG styles');
     await app.handleAction(action,{});
     assert.equal(removed.at(-1),selector);
   }
@@ -217,6 +218,27 @@ test('information banners share an accessible close icon and closing never repai
   vm.runInContext("STATE.sharedStorageError='STORAGE_UNAVAILABLE';",app);
   assert.match(app.renderStorageStatusCore(),/Live database unavailable/);
   assert.doesNotMatch(app.renderStorageStatusCore(),/storage-status-close/);
+});
+
+test('notification close icons are self-contained and share centered, theme-aware focusable controls',()=>{
+  const app=loadAppSandbox();
+  const svg=app.uiIcon('close');
+  assert.match(svg,/fill="none" stroke="currentColor" stroke-width="1.8"/);
+  assert.match(svg,/<path d="M5 5l12 12M17 5L5 17"/);
+  assert.match(svg,/aria-hidden="true"/);
+  const css=fs.readFileSync(path.join(__dirname,'../assets/remarkt-grading.css'),'utf8');
+  const control=css.match(/\.storage-status-close\s*\{([^}]+)\}/)[1];
+  assert.match(control,/padding:\s*0/);
+  assert.match(control,/display:\s*inline-grid/);
+  assert.match(control,/place-items:\s*center/);
+  const icon=css.match(/\.storage-status-close svg\s*\{([^}]+)\}/)[1];
+  assert.match(icon,/fill:\s*none/);
+  assert.match(icon,/stroke:\s*currentColor/);
+  assert.match(icon,/stroke-width:\s*2/);
+  assert.match(icon,/pointer-events:\s*none/);
+  assert.match(css,/\.storage-status-close:focus-visible\s*\{[^}]*outline:/);
+  vm.runInContext("STATE.storageFormat=3;STATE.sharedWorkspaceId='close-icon-qa';STATE.currentUser={id:'worker',rol:'Grader'};STATE.sharedStorageError='STORAGE_UNAVAILABLE';STATE.offlineWork=true;",app);
+  assert.match(app.renderStorageStatus(),/data-action="dismiss_local_work_notice"[^>]*><svg[^>]*stroke="currentColor"/);
 });
 
 test('local continuity never loads example batches and requires durable storage, correct workspace and verified credentials',async()=>{

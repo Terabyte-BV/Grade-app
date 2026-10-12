@@ -3190,10 +3190,11 @@ html[data-theme="dark"] .acc-search:focus-within { border-color: #EDEDE8; box-sh
 .storage-status { margin: 16px auto; max-width: 1240px; padding: 18px 22px; border: 2px solid #b45309; border-radius: 12px; background: #fff7ed; color: #78350f; }
 .storage-status strong { font-size: 18px; }
 .storage-status-dismissible { position: relative; padding-right: 66px; }
-.storage-status-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font-size: 26px; line-height: 1; }
+.storage-status-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; padding: 0; box-sizing: border-box; display: inline-grid; place-items: center; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; line-height: 1; }
 .storage-status-close:hover { background: rgba(180,83,9,.12); }
 .storage-status-close:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
-.storage-status-close svg { display: block; width: 20px; height: 20px; margin: auto; }
+.storage-status-close svg { display: block; width: 20px; height: 20px; margin: auto; fill: none; stroke: currentColor; stroke-width: 2; pointer-events: none; }
+html[data-theme="dark"] .storage-status-close:hover { background: rgba(255,221,178,.12); }
 .app-alert .storage-status-close {position:static;flex:0 0 40px;padding:0;}
 .storage-status p { margin: 8px 0; line-height: 1.5; }
 .storage-status-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }

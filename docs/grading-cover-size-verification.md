@@ -20,7 +20,7 @@ Pre-releasecontrolesnapshot. Gebruiker heeft op 12 oktober 2026 publicatie goedg
 ## Controle
 
 - Gerichte foto-/beleidstests: 31 geslaagd, inclusief palmrestmaatvragen, correcties zonder verlies van zelfstandig veiligheidsrisico, schermrand C/X, oude reparatiehistorie, leverancieradvies en verwijdering van de actieve 1–2cm-foto.
-- Volledige testset: 314 tests geslaagd; JavaScript syntaxchecks, npm run check en git diff --check geslaagd.
+- Volledige testset na sluiticoonfix: 315 tests geslaagd; JavaScript syntaxchecks, npm run check en git diff --check geslaagd.
 - Impeccable detector gaf []. Bestaande compacte hoofdvergelijking blijft behouden; maximaal vijf detailkeuzes per actieve vraag, geen CSS-wijziging.
 - Alle actieve vervolgvragen blijven onder 650 kB afbeeldingsdata (grootste vraag 559254 bytes) en 9 kB HTML. Nieuwe veiligheidsfoto onderkant: 160515 bytes, 1200×800 JPEG kwaliteit 82. Andere nieuwe JPEGs zijn 1200×800: bovenkap 3 cm 129852 bytes, bovenkap 5 cm 124657 bytes, defecte poort 117662 bytes.
 - Nieuwe palmrest-JPEGs (kwaliteit 82, 1200×800): krassen 108712 B, coating 136327 B, breuk 3 cm 109091 B / 5 cm 97184 B, ontbrekende hoek 3 cm 109346 B / 5 cm 99794 B, veiligheidsrisico 156508 B. Vier C-keuzes samen 463476 B; X 353486 B; maatvragen circa 206–209 kB. Nieuw zijkantvoorbeeld 3 cm: 83134 B.
@@ -43,3 +43,11 @@ Foto's en exacte ingebouwde imagegen-prompts staan in grading-lid-size-examples.
 De zeven nieuwe palmrestfoto's, exacte ingebouwde image_gen-prompts en afgekeurde kandidaten staan in grading-palmrest-size-policy.json. Het nieuwe 3cm-zijkantvoorbeeld staat in grading-edge-size-examples.json, inclusief de vervangen 1–2cm-variant als historische kandidaat. Build: 20261012-cover-size-policy-v6; regelversie v4, begeleide flow v8.
 
 Geen databases, accounts, batches of bestaande beoordelingen gemigreerd. Voor publicatie uitsluitend de relevante applicatiebestanden, compacte foto's, test- en promptdocumentatie selecteren. Onverwante werkboomwijzigingen behouden.
+
+## Aanvulling: zichtbare sluiticonen
+
+- Oorzaak lege knop: uiIcon gaf open SVG-paden zonder eigen stroke/fill-defaults terug; informatiebalken hadden alleen icoonafmetingen, geen tekenstijl. Schermspecifieke SVG-stijlen maskeerden dit elders.
+- uiIcon tekent nu zelfstandig met fill=none, stroke=currentColor, stroke-width=1.8. Gedeelde informatieknop houdt 40×40 klikruimte, gecentreerd 20px-kruisje, zichtbare hover/focus en thema-afhankelijke kleur. Bestaande sluitacties, waarschuwingen en afbeeldingruimte ongewijzigd; geen extra requests.
+- Regressietest reproduceerde het onzichtbare kruis vóór herstel en slaagt na herstel, inclusief gegevensbescherming, tijdelijke werkdatabase, algemene berichten en lokale werkmodus. Bestaande tests bewaken dat sluiten invoer/beoordeling niet opnieuw opbouwt en blokkerende opslagfouten niet verbergt.
+- Detector: bestaande CSS-waarschuwingen buiten het gewijzigde sluitknopblok ongemoeid gelaten; geen brede restyling. Visuele browsercontrole blijft niet beschikbaar (apps:[], browsers:[]); bron-, gedrag- en productiebestandscontrole uitgevoerd.
+- Releasebuild inclusief fotobeleid en sluiticoonfix: 20261012-visible-notice-close-v1.
