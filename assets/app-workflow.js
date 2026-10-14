@@ -437,6 +437,9 @@ function syncModeSelectForRole(role, modeSelect) {
 }
 
 function handleDelegatedInput(e) {
+  if (e.target.id === 'scanInput' && ['scan', 'sticker_scan'].includes(STATE.currentScreen)) {
+    scheduleLaptopCodeSearch(e.target.value); return;
+  }
   if (STATE.currentScreen === 'monitor_manual' && e.target && String(e.target.id || '').startsWith('mm_')) {
     startMonitorManualTiming();
   }
@@ -681,17 +684,11 @@ function handleDelegatedKeydown(e) {
     if (e.target.id === 'scanInput') {
       e.preventDefault();
       const sticker = e.target.value.trim();
-      e.target.value = '';
       if (STATE.currentScreen === 'monitor_label_scan') {
+        e.target.value = '';
         runUiAction(e.target, () => selectMonitorForLabel(sticker));
-      } else if (STATE.currentScreen === 'sticker_scan') {
-        Promise.resolve(runUiAction(e.target, () => scanAndPrintStickerLabel(sticker, { source: 'scan' }), {label:'Printing and saving...'})).catch(error => {
-          reportAppError('Label print failed', error);
-          setAppMessage('Label print failed. Try again.');
-          render();
-        });
       } else {
-        Promise.resolve(runUiAction(e.target, () => selectLaptop(sticker))).catch(error => {
+        Promise.resolve(runUiAction(e.target, () => submitLaptopCode(sticker))).catch(error => {
           reportAppError('Scan failed', error);
           setAppMessage('Scan failed. Try again.');
           render();
@@ -779,6 +776,40 @@ function openImagePreviewFromElement(element) {
 }
 
 let scanSearchTimer = null;
+let laptopCodeSearchTimer = null;
+function updateLaptopCodeResults(value) {
+  if (!['scan', 'sticker_scan'].includes(STATE.currentScreen)) return;
+  STATE.scanCodeQuery = String(value || '').trim();
+  const results = document.getElementById('scan-code-results');
+  if (results) {
+    results.innerHTML = renderLaptopCodeMatches(STATE.scanCodeQuery);
+    if (typeof translateRenderedApp === 'function') translateRenderedApp(results);
+  }
+}
+function scheduleLaptopCodeSearch(value) {
+  clearTimeout(laptopCodeSearchTimer);
+  STATE.scanCodeQuery = value;
+  const screen = STATE.currentScreen;
+  laptopCodeSearchTimer = setTimeout(() => {
+    const input = document.getElementById('scanInput');
+    if (STATE.currentScreen === screen && input?.value === value) updateLaptopCodeResults(value);
+  }, 120);
+}
+async function submitLaptopCode(value) {
+  clearTimeout(laptopCodeSearchTimer);
+  if (!['scan', 'sticker_scan'].includes(STATE.currentScreen) || STATE.laptopReprintPrompt || STATE.laptopScanBusy || STATE.laptopReprintBusy) return false;
+  const matches = getLaptopCodeMatches(value);
+  if (matches.exact.length === 1 && matches.total === 1) {
+    STATE.scanCodeQuery = '';
+    const sticker = matches.exact[0].sticker;
+    return STATE.currentScreen === 'sticker_scan' || isStickerUser()
+      ? scanAndPrintStickerLabel(sticker, { source: 'scan' }) : selectLaptop(sticker);
+  }
+  // Even a unique PARTIAL result requires an explicit click. Enter twice must
+  // never turn a suffix into an unintended print or grading selection.
+  updateLaptopCodeResults(value);
+  return false;
+}
 function scheduleScanSearch(value) {
   clearTimeout(scanSearchTimer);
   scanSearchTimer = setTimeout(() => {
@@ -1169,6 +1200,7 @@ async function handleAction(action, el) {
       STATE.imagePreview = null;
       break;
     case 'logout':
+      STATE.scanCodeQuery = '';
       cancelCurrentMonitorTiming();
       clearSessionUser();
       STATE.currentUser = null;
@@ -1213,6 +1245,7 @@ async function handleAction(action, el) {
       STATE.supplierNotice = null;
       break;
     case 'sticker_scan':
+      STATE.scanCodeQuery = '';
       STATE.currentScreen = 'sticker_scan';
       STATE.currentMonitor = null;
       STATE.manualError = '';
@@ -1346,6 +1379,7 @@ async function handleAction(action, el) {
       STATE.pendingDecision = null;
       break;
     case 'scan':
+      STATE.scanCodeQuery = '';
       STATE.inventoryPages = {};
       STATE.currentScreen = isStickerUser() ? 'sticker_scan' : 'scan';
       STATE.currentMonitor = null;
@@ -1986,6 +2020,8 @@ async function selectLaptop(sticker) {
 }
 
 function openLaptopRepeat(laptop, source) {
+  clearTimeout(laptopCodeSearchTimer);
+  STATE.scanCodeQuery = '';
   STATE.currentLaptop = null;
   STATE.currentGrading = null;
   STATE.pendingDecision = null;
@@ -2012,6 +2048,8 @@ function cancelLaptopRepeat() {
 }
 
 async function selectLaptopForScan(sticker) {
+  clearTimeout(laptopCodeSearchTimer);
+  STATE.scanCodeQuery = '';
   const cleanSticker = String(sticker || '').trim();
   let l = getLaptopBySticker(sticker);
   if (!l) {
@@ -2171,6 +2209,8 @@ async function scanAndPrintStickerLabel(sticker, options = {}) {
 }
 
 async function performStickerScan(sticker, options = {}) {
+  clearTimeout(laptopCodeSearchTimer);
+  STATE.scanCodeQuery = '';
   if(STATE.storageFormat===3 && !await loadRecordTrace(getCanonicalSticker(sticker))) {render();return false;}
   const cleanSticker = String(sticker || '').trim();
   if (!cleanSticker) {

@@ -23,6 +23,7 @@ const STATE = {
   deletedMonitorBatchIds: [],
   deletedMonitorStickers: [],
   scanSearch: '',
+  scanCodeQuery: '',
   monitorScanSearch: '',
   monitorSelectedGrade: null,
   monitorPrintInProgress: false,
@@ -939,6 +940,38 @@ function getLaptopBySticker(sticker) {
   if (!LAPTOP_INDEX.size) rebuildLaptopIndex();
   const raw = String(sticker || '').trim();
   return LAPTOP_INDEX.get(raw) || LAPTOP_INDEX.get(normalizeStickerCode(raw)) || null;
+}
+
+function normalizeLaptopScanCode(value) {
+  return String(value || '').trim().replace(/\s+/g, '').toUpperCase();
+}
+
+function getLaptopCodeMatches(value, limit = 10) {
+  const query = normalizeLaptopScanCode(value);
+  const result = { items: [], total: 0, exact: [], query };
+  if (!query || query.length > 256) return result;
+  const canonical = normalizeLaptopScanCode(normalizeStickerCode(value));
+  const barcodeExact = [], serialExact = [];
+  for (const laptop of getAllLaptops()) {
+    const barcode = normalizeLaptopScanCode(laptop.sticker);
+    const serial = normalizeLaptopScanCode(laptop.serial);
+    const exactBarcode = barcode === query || (canonical && normalizeLaptopScanCode(normalizeStickerCode(laptop.sticker)) === canonical);
+    const exactSerial = Boolean(serial && (serial === query || (canonical && normalizeLaptopScanCode(normalizeStickerCode(laptop.serial)) === canonical)));
+    if (exactBarcode) barcodeExact.push(laptop);
+    if (exactSerial) serialExact.push(laptop);
+    if (exactBarcode || exactSerial || barcode.includes(query) || (serial && serial.includes(query))) {
+      result.total++;
+      if (result.items.length < limit) result.items.push(laptop);
+    }
+  }
+  // A real barcode always takes precedence over another device's serial.
+  // Multiple exact serials are deliberately not reduced to the first match.
+  result.exact = barcodeExact.length ? barcodeExact : serialExact;
+  if (result.exact.length) {
+    const exactSet = new Set(result.exact);
+    result.items = result.exact.concat(result.items.filter(laptop => !exactSet.has(laptop))).slice(0, limit);
+  }
+  return result;
 }
 
 function getAllMonitors() {

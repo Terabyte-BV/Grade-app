@@ -1817,6 +1817,27 @@ function renderInventoryPager(page) {
     <button type="button" class="btn btn-secondary" data-action="inventory_page" data-inventory-scope="${escapeHtml(page.key)}" data-inventory-page="${page.page+1}" ${page.page===page.pages?'disabled':''}>Next</button>
   </nav>`;
 }
+function renderLaptopCodeMatches(value) {
+  const matches = getLaptopCodeMatches(value);
+  if (!matches.query) return '';
+  const labelOnly = STATE.currentScreen === 'sticker_scan' || isStickerUser();
+  return `<div class="scan-code-matches">
+    <p class="scan-code-status" role="status" aria-live="polite"><span>Found devices</span>: <strong>${matches.total}</strong>. <span>${matches.total ? 'Choose the correct device below.' : 'No barcode or serial number matches. Try the last characters or search below.'}</span></p>
+    ${matches.total > matches.items.length ? '<p class="card-sub">Showing the first 10 matches. Enter more characters to narrow the results.</p>' : ''}
+    <ul class="scan-code-list">${matches.items.map(laptop => `<li><button type="button" class="batch-select" ${labelOnly ? 'data-sticker-label' : 'data-sticker'}="${escapeHtml(laptop.sticker)}">
+      <span class="batch-num">${escapeHtml(laptop.merk)} ${escapeHtml(laptop.model)}</span>
+      <span class="batch-meta"><span>Barcode</span>: ${escapeHtml(laptop.sticker)} · <span>Serial number</span>: ${escapeHtml(laptop.serial || '-')} · <span>Batch</span>: ${escapeHtml(laptop.batchNummer || '-')}</span>
+    </button></li>`).join('')}</ul>
+  </div>`;
+}
+
+function renderLaptopScanInput() {
+  return `<label class="form-label" for="scanInput">Barcode or serial number</label>
+    <input type="text" class="scan-input" id="scanInput" placeholder="Scan a code or type part of it..." value="${escapeHtml(STATE.scanCodeQuery || '')}" maxlength="256" autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus inputmode="text" aria-controls="scan-code-results" aria-describedby="scan-code-help">
+    <p class="card-sub scan-code-help" id="scan-code-help">You can also type the last characters of a barcode or serial number, then choose the correct device.</p>
+    <div id="scan-code-results">${renderLaptopCodeMatches(STATE.scanCodeQuery || '')}</div>`;
+}
+
 function renderStickerScan() {
   const {allLaptops, availableLaptops, completedLaptops} = getLaptopScanInventory();
   const query = STATE.scanSearch || '';
@@ -1831,7 +1852,7 @@ function renderStickerScan() {
       <div class="card">
         <h3>Label Scan</h3>
         <p class="card-sub" style="margin-bottom: 14px;">Scan the barcode. The specs label prints instantly with a blank grade line.</p>
-        <input type="text" class="scan-input" id="scanInput" placeholder="Scan or type barcode..." autofocus inputmode="numeric">
+        ${renderLaptopScanInput()}
         <div class="scan-tools">
           <input type="search" class="scan-search" id="scanSearch" placeholder="Search devices by barcode, serial, brand, model or batch..." value="${escapeHtml(query)}">
         </div>
@@ -1972,7 +1993,7 @@ function renderScan() {
       <div class="card">
         <h3>Scan Device</h3>
         <p class="card-sub" style="margin-bottom: 14px;">${labelOnly ? 'Scan a device to print a specs label with a blank grade line. The device is marked complete.' : 'Scan or type the barcode. Graded or labeled devices are removed from this list.'}</p>
-        <input type="text" class="scan-input" id="scanInput" placeholder="e.g. 7771198" autofocus inputmode="numeric">
+        ${renderLaptopScanInput()}
         <div class="scan-tools">
           <input type="search" class="scan-search" id="scanSearch" placeholder="Search open devices by barcode, serial, brand, model or batch..." value="${escapeHtml(query)}">
         </div>

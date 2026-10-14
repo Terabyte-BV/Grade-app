@@ -664,6 +664,14 @@ html, body { background: #FAFAF8; color: var(--remarkt-ink); }
 .btn-icon { min-height: 38px; border: 1px solid var(--remarkt-line); color: var(--remarkt-ink); background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn-icon:hover { border-color: var(--remarkt-red); color: var(--remarkt-red); background: #fff; }
 .topbar-refresh svg { width: 18px; height: 18px; flex-shrink: 0; }
+.scan-code-help { margin-top: 6px; }
+.scan-code-matches { margin-top: 12px; border-top: 1px solid var(--remarkt-line); padding-top: 10px; }
+.scan-code-status { font-size: 14px; line-height: 1.5; margin-bottom: 8px; overflow-wrap: anywhere; }
+.scan-code-list { list-style: none; margin: 0; padding: 0; }
+.scan-code-list > li + li { border-top: 1px solid var(--remarkt-line); }
+.scan-code-list .batch-select { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 52px; text-align: left; gap: 3px; padding: 10px 4px; }
+.scan-code-list .batch-meta { white-space: normal; overflow-wrap: anywhere; }
+.scan-code-list .batch-select:focus-visible { outline: 3px solid var(--remarkt-red); outline-offset: -3px; }
 .topbar-refresh:focus-visible { outline: 3px solid var(--remarkt-red); outline-offset: 3px; }
 .topbar-settings { position: relative; flex: 0 0 auto; }
 .topbar-settings > summary { list-style: none; cursor: pointer; user-select: none; }
