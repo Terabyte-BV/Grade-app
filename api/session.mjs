@@ -11,8 +11,13 @@ export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
   try {
     if (!recordStorageEnabled()) throw storageError('AUTH_NOT_CONFIGURED', 'Secure storage is not active.');
-    if (request.method !== 'POST') return response.status(405).json({ ok: false });
     const store = pgRecordStore(), workspace = process.env.REMARKT_WORKSPACE_ID;
+    if (request.method === 'GET') {
+      const user = await requireSession(request, store, workspace);
+      await pgRateLimit('api:' + user.id, 500);
+      return response.status(200).json({ user: publicUser(user), workspaceId: workspace });
+    }
+    if (request.method !== 'POST') return response.status(405).json({ ok: false });
     const body = await readJsonBody(request, 4096);
     if (!body || typeof body !== 'object') throw storageError('REQUEST_INVALID', 'Invalid request.', 400);
     if (body.action === 'password') {

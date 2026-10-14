@@ -1074,6 +1074,7 @@ function guardPasswordChangeAction(action) {
 
 async function handleAction(action, el) {
   if (STATE.laptopReprintPrompt && !['laptop_reprint_confirm', 'laptop_reprint_cancel', 'laptop_regrade'].includes(action)) return;
+  if (action === 'refresh_page') { await refreshCurrentPage(); return; }
   if (action === 'toggle_fullscreen') {
     await toggleAppFullscreen(); return;
   }
@@ -1700,6 +1701,41 @@ async function handleAction(action, el) {
   render();
 }
 
+let pageRefreshRequest = null;
+async function refreshCurrentPage() {
+  if (pageRefreshRequest) return pageRefreshRequest;
+  pageRefreshRequest = performPageRefresh();
+  try { return await pageRefreshRequest; } finally { pageRefreshRequest = null; }
+}
+async function performPageRefresh() {
+  if (!STATE.currentUser) return false;
+  // Do not race a physical print or a form submission. Their spinner already
+  // explains the ongoing operation, and a refresh must never duplicate it.
+  if (typeof pendingUiActions !== 'undefined' && pendingUiActions.size > 1) return false;
+  if (typeof persistGuidedDraft === 'function') persistGuidedDraft();
+  const screen = STATE.currentScreen;
+  const keepInput = ['manual', 'monitor_manual', 'accounts', 'import', 'password_change'].includes(screen) || liveRenderWouldDisruptInput();
+  try {
+    if (STATE.sharedStorageError || STATE.offlineWork) await loadSharedDemoState();
+    else await syncSharedStateIfChanged({ loadFull: true });
+    if (!STATE.currentUser) { render(); return false; }
+    if (typeof appRetryAfter !== 'undefined' && appRetryAfter > Date.now()) {
+      if (!keepInput || STATE.currentScreen !== screen) render(); return false;
+    }
+    const message = STATE.sharedStorageError
+      ? canWorkLocally() ? 'Connection unavailable. Your session and local work are kept.' : 'Refresh failed. Your session and unsynchronized work are kept. Retry the connection.'
+      : 'Data refreshed. You are still signed in.';
+    setAppMessage(message, STATE.sharedStorageError ? 'warning' : 'success');
+    // Refreshing data never reloads the document or discards DOM-only input.
+    // Mandatory password-change and expired-session screens take precedence.
+    if (!keepInput || STATE.currentScreen !== screen) render();
+    return !STATE.sharedStorageError;
+  } catch {
+    setAppMessage('Refresh failed. Your session and unsynchronized work are kept. Retry the connection.', 'warning');
+    if (!keepInput) render(); return false;
+  }
+}
+
 function getLaptopBatchById(batchId) {
   return BATCHES.find(batch => batch && (batch.id === batchId || batch.nummer === batchId)) || null;
 }
@@ -2088,8 +2124,7 @@ async function performCompletedLaptopReprint(sticker, options = {}) {
 
   const laptop = buildLaptopFromHistoryOrBatch(cleanSticker, historyItem || labelPrint);
   const result = historyItem ? getHistoryResultForReprint(historyItem) : { eindgrade: '', problems: [] };
-  const printTypes = ['specs'];
-  if (needsProblemLabel(laptop, result)) printTypes.push('problems');
+  const printTypes = getLaptopLabelPrintTypes(laptop, result);
   const preparedWindows = {};
   const browserProfile = getBrowserPrintProfile();
   const allowBrowserFallback = shouldUseBrowserPrintFallback(browserProfile);
@@ -2162,8 +2197,7 @@ async function performStickerScan(sticker, options = {}) {
   }
 
   const supplierResult = { eindgrade: '', problems: [] };
-  const printTypes = ['specs'];
-  if (needsProblemLabel(laptop, supplierResult)) printTypes.push('problems');
+  const printTypes = getLaptopLabelPrintTypes(laptop, supplierResult);
   const preparedWindows = {};
   const browserProfile = getBrowserPrintProfile();
   const allowBrowserFallback = shouldUseBrowserPrintFallback(browserProfile);
@@ -3245,8 +3279,7 @@ async function performConfirmSaveWithAutomaticLabels() {
     return;
   }
 
-  const printTypes = ['specs'];
-  if (needsProblemLabel(l, g.result)) printTypes.push('problems');
+  const printTypes = getLaptopLabelPrintTypes(l, g.result);
   const printJobs = printTypes.map(type => createLaptopLabelPrintJob(l, g.result, type));
 
   const printResult = await printLabelJobsWithDymoFallback(

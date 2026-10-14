@@ -1035,6 +1035,89 @@ test('resultaatwoorden zijn ook in het Nederlands beschikbaar', () => {
   assert.equal(app.translateCopy('Why this result?'), 'Waarom deze beoordeling?');
   assert.equal(app.translateCopy('Grade pending repair'), 'Grade na reparatie bepalen');
   assert.equal(app.translateCopy('Supplier observation'), 'Waarneming leverancier');
+  assert.equal(app.translateCopy('2 labels will be printed'), 'Er worden 2 labels geprint');
+  assert.equal(app.translateCopy('Why an extra label?'), 'Waarom een extra label?');
+  assert.equal(app.translateCopy('View this label'), 'Bekijk dit label');
+  assert.equal(app.translateCopy('Specifications label'), 'Specificatielabel');
+  assert.equal(app.translateCopy('Confirm & print 1 label'), 'Bevestig en print 1 label');
+});
+
+test('labelplan, voorbeelden en echte printjobs gebruiken dezelfde aantallen en inhoud', async () => {
+  const cases = [
+    { name: 'clean', count: 1, result: { eindgrade: 'A' } },
+    { name: 'cosmetic C', count: 1, result: { eindgrade: 'C', problems: ['Zware krassen en lakschade'] } },
+    { name: 'direct', count: 2, title: 'Repair label', result: { eindgrade: 'A', gradeAfterRepair: true, forceProblemLabel: true, repairLabelType: 'direct', repairActions: [{ componentId: 'lcd', issue: 'Cracked screen' }] } },
+    { name: 'production', count: 2, title: 'Production label', result: { eindgrade: 'B', gradeAfterRepair: true, repairLabelType: 'production', repairActions: [{ componentId: 'keyboard', issue: 'Toets ontbreekt' }] } },
+    { name: 'reject', count: 2, title: 'Not sellable label', result: { eindgrade: 'D', repairLabelType: 'reject', repairPolicy: { reason: 'Te veel zware reparaties' }, repairActions: [{ componentId: 'lcd', issue: 'Cracked screen' }, { componentId: 'scharnieren', issue: 'Scharnier werkt niet' }] } },
+    { name: 'legacy policy type', count: 2, title: 'Production label', result: { eindgrade: 'C', forceProblemLabel: true, repairPolicy: { labelType: 'production' }, problems: ['Missing key'] } },
+    { name: 'supplier repair note', count: 2, title: 'Repair label', supplier: 'Dead battery', result: { eindgrade: 'B' } },
+    { name: 'forced without description', count: 2, title: 'Repair label', result: { eindgrade: 'D', forceProblemLabel: true } },
+  ];
+  for (const item of cases) {
+    const app = loadAppSandbox();
+    app.__resultFixture = { score: 0, redenen: [], detailRows: [], problems: [], ...item.result };
+    app.__supplierFixture = item.supplier || '';
+    vm.runInContext(`
+      STATE.currentUser = USERS.find(user => user.id === 'tim');
+      STATE.currentLaptop = {...getLaptopBySticker('8460024'), meldingen: __supplierFixture};
+      startGrading('expert'); STATE.currentGrading.result = __resultFixture;
+      window.__printJobs = [];
+      printLabelJobsWithDymoFallback = async jobs => {window.__printJobs = jobs; return {ok: true};};
+      saveGrading = async () => true;
+    `, app);
+    const html = app.renderResult();
+    const plan = html.slice(html.indexOf('<section class="result-print-plan'), html.indexOf('<section class="result-condition'));
+    assert.match(plan, new RegExp(`data-label-count="${item.count}"`), item.name);
+    assert.equal((plan.match(/class="result-label-content"/g) || []).length, item.count, item.name);
+    assert.ok(html.includes(item.count === 2 ? 'Confirm & print 2 labels' : 'Confirm & print 1 label'), item.name);
+    assert.ok(html.indexOf('result-print-plan') < html.indexOf('Recorded condition'), item.name);
+    if (item.title) {
+      assert.ok(plan.includes(`<h3>${item.title}</h3>`), item.name);
+      assert.match(plan, /Why an extra label\?/, item.name);
+    } else {
+      assert.match(plan, /No extra label will be printed/, item.name);
+      assert.doesNotMatch(plan, /Why an extra label\?/, item.name);
+    }
+    const expectedTypes = Array.from(app.getLaptopLabelPrintTypes(vm.runInContext('STATE.currentLaptop', app), app.__resultFixture));
+    await app.confirmSaveWithAutomaticLabels();
+    const jobs = vm.runInContext('window.__printJobs', app);
+    assert.equal(jobs.length, item.count, item.name);
+    assert.deepEqual(Array.from(jobs, job => job.type), expectedTypes, item.name);
+    for (const job of jobs) {
+      for (const row of job.rows) assert.ok(plan.includes(`<div>${app.escapeHtml(row)}</div>`), `${item.name}: ${row}`);
+    }
+    if (item.name === 'direct') {
+      assert.match(plan, /Grade \.{6}/);
+      assert.match(plan, /Specs label has no grade/);
+    }
+    if (item.name === 'reject') assert.match(plan, /Two or more major repairs were recorded/);
+    if (item.name === 'forced without description') assert.match(plan, /No repair description was recorded/);
+  }
+});
+
+test('labelvoorbeeld is lokaal, veilig en toont alle reparaties zonder de fysieke labeltekst te veranderen', () => {
+  const app = guidedSandbox();
+  vm.runInContext(`
+    window.__printCalls = 0;
+    printLabelJobsWithDymoFallback = async () => {window.__printCalls++;return {ok:true};};
+    STATE.currentGrading.result = {eindgrade:'D',score:999,redenen:[],detailRows:[],forceProblemLabel:true,repairLabelType:'reject',repairActions:[
+      {componentId:'lcd',issue:'Cracked screen'},
+      {componentId:'keyboard',issue:'Missing key'},
+      {componentId:'expert',issue:'Third repair <img src=x onerror=alert(1)>'}
+    ]};
+  `, app);
+  const before = vm.runInContext('JSON.stringify(STATE.currentGrading)', app);
+  const html = app.renderResult();
+  const plan = html.slice(html.indexOf('<section class="result-print-plan'), html.indexOf('<section class="result-condition'));
+  assert.match(plan, /Test label preview/);
+  assert.match(plan, /No labels will be printed or saved/);
+  assert.match(plan, /data-i18n-skip="true"/);
+  assert.match(plan, /Third repair &lt;img/);
+  assert.doesNotMatch(plan, /<img|<iframe|data-action="confirm_save"/);
+  assert.equal(vm.runInContext('window.__printCalls', app), 0);
+  assert.equal(vm.runInContext('JSON.stringify(STATE.currentGrading)', app), before);
+  assert.equal(vm.runInContext('STATE.history.length', app), 0);
+  assert.doesNotMatch(app.getProblemLabelRows(vm.runInContext('STATE.currentLaptop', app), vm.runInContext('STATE.currentGrading.result', app)).join(' '), /Third repair/);
 });
 
 test('lichte leverancierswaarneming geeft oranje advies zonder popup of automatische keuze', () => {

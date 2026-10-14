@@ -48,13 +48,25 @@ function labelValue(value, fallback = '-') {
 // achter elkaar op het label komt (import-/correctie-data die het merk al in
 // het modelveld heeft staan).
 function dedupeLabelBrand(text) {
-  const clean = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  const clean = String(text == null ? '' : text).replace(/\s+/g, ' ').trim()
+    .replace(/^Dell\s+Inc\.?(?=\s|$)/i, 'Dell');
   if (!clean) return clean;
   const words = clean.split(' ');
   while (words.length > 1 && words[0].toLowerCase() === words[1].toLowerCase()) {
     words.splice(1, 1);
   }
   return words.join(' ');
+}
+
+function compactProcessorForLabel(value) {
+  const text = String(value || '').replace(/\((?:R|TM)\)|[®™]/gi, '').replace(/\s+/g, ' ').trim();
+  // Keep model suffixes (U/H/HQ/PRO etc.) and never alter the imported specs.
+  // Unknown families retain their text rather than guessing a different CPU.
+  const intel = text.match(/^(?:(\d+)\s*x\s*)?(?:Intel\s+)?(?:Core\s+)?(i[3579])[-\s]+(\d{3,5}[a-z]{0,3})(?:\s+(?:CPU|Processor))?(?:\s*@\s*\d+(?:[.,]\d+)?\s*[GM]Hz)?$/i);
+  if (intel) return `${intel[1] && Number(intel[1]) > 1 ? intel[1] + 'x ' : ''}${intel[2].toLowerCase()}-${intel[3].toUpperCase()}`;
+  const ryzen = text.match(/^(?:AMD\s+)?(Ryzen\s+[3579]\s+(?:PRO\s+)?\d{4,5}[a-z]{0,3})(?:\s+(?:with\s+)?Radeon\s+.*Graphics)?$/i);
+  if (ryzen) return ryzen[1];
+  return text;
 }
 
 function formatBatteryForLabel(value) {
@@ -188,7 +200,7 @@ function getSpecsLabelRows(laptop, result, options = {}) {
 
   return [
     dedupeLabelBrand(`${labelValue(laptop.merk, '')} ${labelValue(laptop.model, '')}`.trim()),
-    `${labelValue(laptop.processor)} / ${labelValue(laptop.ram)} / ${labelValue(laptop.ssd)}`,
+    `${labelValue(compactProcessorForLabel(laptop.processor))} / ${labelValue(laptop.ram)} / ${labelValue(laptop.ssd)}`,
     options.hideGrade ? `Grade ...... / Touch ${touch}` : `Grade ${grade} / Touch ${touch}`,
     row4Parts.join(' / ')
   ];
@@ -235,6 +247,12 @@ function getLabelRows(laptop, result, type = 'specs', options = {}) {
 function needsProblemLabel(laptop, result) {
   result = result || {};
   return Boolean(result.forceProblemLabel) || (Array.isArray(result.repairActions) && result.repairActions.length > 0) || getRepairIssues(laptop, result).length > 0;
+}
+
+// One print plan for the assessment overview, confirmation and reprints.
+// Cosmetic grades alone do not decide whether a second label is printed.
+function getLaptopLabelPrintTypes(laptop, result) {
+  return needsProblemLabel(laptop, result) ? ['specs', 'problems'] : ['specs'];
 }
 
 function getDymoLabelConfig() {

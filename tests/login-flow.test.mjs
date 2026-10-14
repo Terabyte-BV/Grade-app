@@ -51,10 +51,10 @@ test('employee login and manager password administration remain reliable on a sh
   };
   const handler=(await import('../api/session.mjs')).default;
   const directory=(await import('../api/demo-state.mjs')).default;
-  const request=async(body,token='',ip='office',handle=handler)=>{
+  const request=async(body,token='',ip='office',handle=handler,method=handle===directory?'GET':'POST')=>{
     const result={headers:{},statusCode:200,setHeader(name,value){this.headers[name]=value;},
       status(code){this.statusCode=code;return this;},json(data){this.data=data;return this;}};
-    await handle({method:handle===directory?'GET':'POST',url:handle===directory?'/api/demo-state?users=1':'/api/session',
+    await handle({method,url:handle===directory?'/api/demo-state?users=1':'/api/session',
       headers:{'x-forwarded-for':ip,...(token?{authorization:'Bearer '+token}:{})},body},result);
     return result;
   };
@@ -280,6 +280,16 @@ test('employee login and manager password administration remain reliable on a sh
       assert.equal(statsCalls,0);assert.equal(urls.filter(url=>url.includes('?work=1')).length,1);
       assert.ok(!urls.some(url=>url.includes('collection=')),'fresh inventory is one compressed request');
       assert.doesNotMatch(app.localStorage.getItem('remarktOfflineLoginV1'),/SyntheticPassword123/);
+      // A real F5 starts a fresh JS runtime. Even with an empty directory cache,
+      // the existing token restores this employee through the real GET handler.
+      const refreshed=loadAppSandbox({gzip:true,indexedDB:new IDBFactory(),sessionStorage:{remarktServerSessionV1:app.liveSessionToken()}});
+      refreshed.URLSearchParams=URLSearchParams;refreshed.fetch=app.fetch;
+      vm.runInContext('loadMonitorPortDatabase=async()=>true;',refreshed);
+      await refreshed.initApp();
+      assert.equal(vm.runInContext('STATE.currentUser.id',refreshed),'staff-8');
+      assert.equal(vm.runInContext('STATE.currentScreen',refreshed),'home');
+      assert.equal(refreshed.getLaptopBySticker('SNQA100').sticker,'QA-100');
+      assert.equal(refreshed.liveSessionToken(),app.liveSessionToken(),'F5 reuses the existing expiry instead of extending it');
       phase='data-outage';
       await app.loginWithPassword();
       assert.equal(vm.runInContext('STATE.currentScreen',app),'home');
@@ -321,6 +331,22 @@ test('employee login and manager password administration remain reliable on a sh
       fields.loginPassword.value='wrong';phase='online';await app.loginWithPassword();
       assert.match(vm.runInContext('STATE.appMessage.text',app),/Incorrect account/);
       assert.equal(JSON.parse(app.localStorage.getItem('remarktOfflineLoginV1'))['staff-8'],undefined);
+    });
+    await t.test('refresh restores only a server-verified session without password or expiry extension',async()=>{
+      const token=issueSession(staff[4],'login-qa');
+      const restored=await request(undefined,token,'office',handler,'GET');
+      assert.equal(restored.statusCode,200);assert.equal(restored.data.user.id,'staff-4');
+      assert.equal(restored.data.user.passwordHash,'server-managed');
+      assert.equal(restored.data.workspaceId,'login-qa');assert.equal(restored.data.token,undefined);
+      assert.equal((await request(undefined,'','office',handler,'GET')).statusCode,401);
+      assert.equal((await request(undefined,token+'tampered','office',handler,'GET')).statusCode,401);
+      const expired=issueSession(staff[4],'login-qa',Date.now()-13*3600000);
+      assert.equal((await request(undefined,expired,'office',handler,'GET')).statusCode,401);
+      await store.merge({mutationId:randomUUID(),operations:[{collection:'users',id:'refresh-revoked',expectedRevision:0,payload:user('refresh-revoked')}]});
+      const revoked=issueSession(user('refresh-revoked'),'login-qa');
+      const record=await store.detail('users','refresh-revoked');
+      await store.merge({mutationId:randomUUID(),operations:[{collection:'users',id:'refresh-revoked',expectedRevision:record.revision,payload:{...record.payload,passwordHash:passwordHash('NewRefreshCredential123!')}}]});
+      assert.equal((await request(undefined,revoked,'office',handler,'GET')).statusCode,401);
     });
   } finally {neonConfig.fetchFunction=undefined;await db.close();}
 });

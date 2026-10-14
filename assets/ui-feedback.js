@@ -14,6 +14,7 @@ function uiActionKey(element, context = uiActionContext()) {
 function uiActionLabel(element) {
   const action = element?.dataset?.action || '';
   if (action === 'login_password') return 'Signing in...';
+  if (action === 'refresh_page') return 'Refreshing...';
   if (/print|confirm_save|confirm_expert/.test(action) || element?.dataset?.stickerLabel || element?.dataset?.monitorPrintGrade || element?.dataset?.expertFinalGrade || element?.dataset?.reprintLaptop) return 'Printing and saving...';
   if (/password|create_user|update_user|delete_user|remove_|verify_batch|reopen_batch|set_touch/.test(action)) return 'Saving...';
   if (element?.dataset?.sticker || element?.id === 'scanInput') return 'Checking device...';

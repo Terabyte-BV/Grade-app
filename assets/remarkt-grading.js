@@ -4,7 +4,7 @@
 async function initApp() {
   // Independent reads start together; the static model database is versioned
   // and browser-cached, while the account directory retains live auth checks.
-  await Promise.all([loadMonitorPortDatabase(), refreshSharedUsers()]);
+  await Promise.all([loadMonitorPortDatabase(), liveSessionToken() ? restoreServerSession() : refreshSharedUsers()]);
   if(STATE.sharedStorageError) {
     await loadDurableBackup();
     const backup=readLocalDemoStateBackup();
@@ -15,9 +15,19 @@ async function initApp() {
     }
   }
   if (STATE.serverAuth && !liveSessionToken()) {
+    if (await restoreOfflineTabSession()) { render(); return; }
     clearSessionUser(); STATE.currentUser = null; STATE.currentScreen = 'login'; render(); return;
   }
-  await loadSharedDemoState();
+  // A valid token may have outlived the local directory cache. Identity comes
+  // from the verified session response, never from decoding an unsigned token.
+  if (STATE.serverAuth && !STATE.currentUser) { STATE.currentScreen = 'login'; render(); return; }
+  if (STATE.currentUser?.mustChangePassword) { STATE.currentScreen = 'password_change'; render(); return; }
+  const loaded = await loadSharedDemoState();
+  if (STATE.serverAuth && STATE.currentUser && (!loaded || (STATE.sharedStorageError && !canWorkLocally()))) {
+    // An authenticated account is not permission to show built-in example
+    // inventory when an operational load is corrupt or unsafe to recover.
+    STATE.loginLoadPending = true; STATE.currentScreen = 'login'; render(); return;
+  }
   // loadSharedDemoState records the stamp of the state it actually read.
   // A second stamp request could acknowledge an unseen colleague's change.
   rebuildLaptopIndex();

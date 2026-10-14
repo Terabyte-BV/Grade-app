@@ -9,6 +9,26 @@ function setLiveSessionToken(token) {
   } catch { /* A browser without session storage must log in again on reload. */ }
 }
 const appReadRequests = new Map();
+async function restoreServerSession() {
+  if (!liveSessionToken()) return false;
+  STATE.serverAuth = true; STATE.storageFormat = 3;
+  try {
+    const response = await appFetch('/api/session', { cache: 'no-store' });
+    if (!response.ok) { await readStorageFailure(response); return false; }
+    const session = await response.json();
+    const user = normalizeStoredUser(session.user);
+    if (!user || !session.workspaceId) { markSharedStorageFailure({code:'STORAGE_CORRUPT'}); return false; }
+    const index = USERS.findIndex(row => row.id === user.id);
+    if (index < 0) USERS.push(user); else USERS[index] = user;
+    STATE.currentUser = user; STATE.sharedWorkspaceId = session.workspaceId;
+    STATE.currentScreen = user.mustChangePassword ? 'password_change' : 'home';
+    STATE.homeTab = 'workflow'; saveSessionUser(user);
+    try { saveUsers(); } catch { /* The server-verified session remains usable. */ }
+    return true;
+  } catch (error) {
+    markSharedStorageFailure(null); reportAppWarning('Session restore unavailable', error); return false;
+  }
+}
 let appRetryAfter = 0;
 let appStatsCache=null;
 const recordTraffic=[];

@@ -85,6 +85,11 @@ function render() {
   const perf = window.performance;
   if (perf && perf.mark) perf.mark('remarkt-render-start');
   const app = document.getElementById('app');
+  const previousSettings = document.getElementById('topbar-settings');
+  const settingsContext = JSON.stringify([STATE.currentUser?.id || '', STATE.currentScreen]);
+  const keepSettingsOpen = previousSettings?.open && previousSettings.dataset.context === settingsContext;
+  const settingsFocus = keepSettingsOpen && previousSettings.contains?.(document.activeElement)
+    ? { ...document.activeElement?.dataset } : null;
   let html = '';
   
   if (STATE.currentScreen === 'login' || (STATE.sharedStorageError && !STATE.localRecoveryAvailable)) {
@@ -122,6 +127,17 @@ function render() {
   if (typeof translateRenderedApp === 'function') translateRenderedApp(app);
   if (typeof fitInspectionViewport === 'function') fitInspectionViewport();
   attachListeners();
+  if (keepSettingsOpen) {
+    const settings = document.getElementById('topbar-settings');
+    if (settings) {
+      settings.open = true;
+      if (settingsFocus?.action) {
+        Array.from(settings.querySelectorAll('button[data-action]')).find(button =>
+          Object.entries(settingsFocus).every(([key, value]) => button.dataset[key] === value)
+        )?.focus({ preventScroll: true });
+      }
+    }
+  }
   if (typeof refreshUiActionFeedback === 'function') refreshUiActionFeedback();
   if (STATE.laptopReprintPrompt) {
     const modal = document.getElementById('laptop-repeat-dialog');
@@ -428,10 +444,8 @@ function renderTopbar() {
         ${u ? `<div class="topbar-user">${escapeHtml(getScreenTitle())} · ${escapeHtml(u.naam)} · ${escapeHtml(displayUserRole(u.rol))}</div>` : ''}
       </div>
       <div class="topbar-actions">
-        ${renderOptionalLanguageToggle()}
-        ${renderThemeToggle()}
-        ${renderContrastToggle()}
-        ${renderFullscreenToggle()}
+        ${renderTopbarSettings()}
+        <button class="btn-icon topbar-refresh" data-action="refresh_page" type="button" title="Refresh data without signing out">${uiIcon('refresh')}<span>Refresh</span></button>
         ${backAction ? `<button class="btn-icon" data-action="${backAction}">← Back</button>` : ''}
         ${backAction && backAction !== 'home' ? '<button class="btn-icon" data-action="home">Home</button>' : ''}
         <button class="btn-icon" data-action="logout">Sign out</button>
@@ -442,6 +456,19 @@ function renderTopbar() {
 
 function renderOptionalLanguageToggle() {
   return typeof renderLanguageToggle === 'function' ? renderLanguageToggle() : '';
+}
+
+function renderTopbarSettings() {
+  const context = JSON.stringify([STATE.currentUser?.id || '', STATE.currentScreen]);
+  return `<details class="topbar-settings" id="topbar-settings" data-context="${escapeHtml(context)}">
+    <summary class="btn-icon" aria-controls="topbar-settings-panel">${uiIcon('settings')}<span>Settings</span>${uiIcon('chevronDown')}</summary>
+    <div class="topbar-settings-panel" id="topbar-settings-panel" role="group" aria-label="Display settings">
+      <div class="topbar-setting-row"><span>Language</span>${renderOptionalLanguageToggle()}</div>
+      <div class="topbar-setting-row"><span>Appearance</span>${renderThemeToggle()}</div>
+      <div class="topbar-setting-row"><span>Contrast</span>${renderContrastToggle()}</div>
+      <div class="topbar-setting-row"><span>Fullscreen</span>${renderFullscreenToggle()}</div>
+    </div>
+  </details>`;
 }
 
 // Contrast-icoon: open cirkel (normaal) vs half-gevulde cirkel (hoog contrast).
@@ -571,6 +598,9 @@ function getScreenTitle() {
 
 function uiIcon(name) {
   const icons = {
+    settings: '<path d="M4 6h2m4 0h8M4 11h8m4 0h2M4 16h2m4 0h8"/><circle cx="8" cy="6" r="2"/><circle cx="14" cy="11" r="2"/><circle cx="8" cy="16" r="2"/>',
+    chevronDown: '<path d="m7 9 4 4 4-4"/>',
+    refresh: '<path d="M18 8a7 7 0 1 0 .2 5M18 3v5h-5"/>',
     fullscreen: '<path d="M8 3H3v5M14 3h5v5M19 14v5h-5M8 19H3v-5"/>',
     fullscreen_exit: '<path d="M3 8h5V3M14 3v5h5M19 14h-5v5M8 19v-5H3"/>',
     part_bovenkap: '<rect x="3" y="4" width="16" height="14" rx="1.5"/><circle cx="11" cy="11" r="1.5"/>',
@@ -2728,14 +2758,46 @@ function renderResultObservationRow(row) {
   </tr>`;
 }
 
+function renderResultPrintPlan(laptop, result, testOnly = false) {
+  const types = getLaptopLabelPrintTypes(laptop, result);
+  const extra = types.includes('problems');
+  const labelType = result.repairLabelType || (result.repairPolicy && result.repairPolicy.labelType) || '';
+  const withheld = isGradeWithheldForRepair(result);
+  const extraTitle = labelType === 'production' ? 'Production label' : labelType === 'reject' ? 'Not sellable label' : 'Repair label';
+  const route = labelType === 'reject' ? 'Not sellable' : labelType === 'production' ? 'Repair during production' : labelType === 'direct' ? 'Direct repair' : 'Repair check required';
+  const routeCopy = labelType === 'reject' ? 'Keep this device out of sellable stock.' : labelType === 'production' ? 'Complete the recorded repairs during production.' : labelType === 'direct' ? 'Repair this device before releasing it for sale.' : 'Check the recorded damage or supplier repair note before releasing this device.';
+  const policyReasons = {
+    'Niet herstelbaar of veiligheidsrisico': 'Damage is marked as beyond repair or a safety risk.',
+    'Te veel zware reparaties': 'Two or more major repairs were recorded.',
+    'Te veel reparatiepunten': 'More than two repair items were recorded.',
+  };
+  const policyReason = result.repairPolicy && result.repairPolicy.reason;
+  const reason = policyReasons[policyReason] || (policyReason && !['Tijdens productie repareren', 'Direct repareren'].includes(policyReason) ? policyReason : '');
+  // Show the full recorded issues, not only the two that fit on a small label.
+  const actions = (result.repairActions || []).map(action => action && action.issue).filter(Boolean);
+  const issues = [...new Set(actions.length ? actions : getRepairIssues(laptop, result))];
+  const countTitle = types.length === 2 ? '2 labels will be printed' : '1 label will be printed';
+  const preview = type => `<details class="result-label-content"><summary>View this label</summary><div class="result-label-paper" data-i18n-skip="true">${getLabelRows(laptop, result, type).map(row => `<div>${escapeHtml(row)}</div>`).join('')}</div><p class="result-label-size">Label contents · 54 × 25 mm</p></details>`;
+  return `<section class="result-print-plan ${extra ? 'has-extra-label' : ''}" aria-labelledby="result-print-title" data-label-count="${types.length}">
+    <h2 id="result-print-title">${uiIcon('labelPrint')}<span>${testOnly ? 'Test label preview' : countTitle}</span></h2>
+    <p class="result-print-note">${testOnly ? 'This is a test. No labels will be printed or saved.' : extra ? 'Both labels print automatically when you confirm. Attach both to this device.' : 'Only the specifications label is needed. No extra label will be printed.'}</p>
+    <ol class="result-label-list">
+      <li><h3>Specifications label</h3><p>${withheld ? 'Specs label has no grade. Determine the grade after repair.' : result.gradeAfterRepair ? 'Specs label shows the grade after repair.' : 'Device specifications and selected grade.'}</p>${preview('specs')}</li>
+      ${extra ? `<li><h3>${extraTitle}</h3><p>Extra label with the recorded repair or rejection details.</p>${preview('problems')}</li>` : ''}
+    </ol>
+    ${extra ? `<div class="result-repair-explanation"><h3>${uiIcon('repair')}<span>Why an extra label?</span></h3><p><strong>${route}</strong> <span>${routeCopy}</span></p>${reason ? `<p>${escapeHtml(translateCopy(reason))}</p>` : ''}${issues.length ? `<ul>${issues.map(issue => `<li>${escapeHtml(translateCopy(guidedDecisionCopy(issue)))}</li>`).join('')}</ul>` : '<p>No repair description was recorded. Ask a coordinator or manager to check this before printing.</p>'}</div>` : ''}
+  </section>`;
+}
+
 function renderResult() {
   const g = STATE.currentGrading;
   const r = g.result;
   const l = STATE.currentLaptop;
   const grade = r.eindgrade;
-  const extraLabelButton = r.repairLabelType === 'production'
+  const labelType = r.repairLabelType || (r.repairPolicy && r.repairPolicy.labelType) || '';
+  const extraLabelButton = labelType === 'production'
     ? 'Print Production'
-    : r.repairLabelType === 'reject'
+    : labelType === 'reject'
       ? 'Print Not sellable'
       : 'Print Repair';
   const testOnly = g.testOnly || (l && l.testOnly);
@@ -2744,9 +2806,9 @@ function renderResult() {
   const rows = getResultInspectionRows(g);
   const changed = rows.filter(row => row.abnormal);
   const clear = rows.filter(row => row.checked && !row.abnormal);
-  const route = gradeWithheld ? 'Direct repair' : r.repairLabelType === 'reject' ? 'Not sellable' : r.repairLabelType === 'production' ? 'Repair during production' : grade === 'D' ? 'Repair / not sellable' : 'No repair recorded';
-  const routeCopy = gradeWithheld ? 'Specs label has no grade. Determine the grade after repair.' : r.repairLabelType === 'reject' ? 'Keep this device out of sellable stock.' : r.repairLabelType === 'production' ? 'Specs label shows the grade after repair.' : grade === 'D' ? 'Resolve the recorded damage before releasing this device.' : 'Confirm the assessment before printing the label.';
-  const hasRepair = gradeWithheld || grade === 'D' || Boolean(r.repairLabelType);
+  const printTypes = getLaptopLabelPrintTypes(l, r);
+  const hasRepair = printTypes.includes('problems');
+  const routeCopy = 'Specs label has no grade. Determine the grade after repair.';
   const reasons = gradeWithheld
     ? [{type:'bad',text:routeCopy}, {type:'warn',text:'The repair must be completed before a final grade can be assigned.'}]
     : (r.redenen || []);
@@ -2767,15 +2829,15 @@ function renderResult() {
             <ul class="result-reasons">${reasons.map(reason => `<li class="${reason.type === 'bad' ? 'bad' : reason.type === 'warn' ? 'warn' : 'good'}">${uiIcon(reason.type === 'good' ? 'complete' : 'info')}<span>${escapeHtml(reason.text)}</span></li>`).join('')}</ul>
             ${r.finalGradeOverride || g.finalGradeOverride ? '<p class="result-footnote">The final grade includes a manual review.</p>' : ''}
           </section>
+          ${renderResultPrintPlan(l, r, testOnly)}
           <section class="result-condition"><h2>Recorded condition</h2>
             ${!changed.length ? `<p class="result-footnote">${clear.length ? 'No additional damage or repair was recorded.' : 'No part-by-part observations were recorded.'}</p>` : ''}
             <table class="result-condition-table"><thead><tr><th scope="col">Part</th><th scope="col">Observation</th><th scope="col">Status</th></tr></thead><tbody>${rows.map(renderResultObservationRow).join('')}</tbody></table>
           </section>
-          <section class="result-next-route ${hasRepair ? 'requires-action' : ''}"><span>${uiIcon(hasRepair ? 'repair' : 'complete')}</span><div><h2>${route}</h2><p>${routeCopy}</p>${(r.problems || []).length ? `<ul>${r.problems.map(problem => `<li>${escapeHtml(translateCopy(guidedDecisionCopy(problem)))}</li>`).join('')}</ul>` : ''}</div></section>
           <details class="result-advanced"><summary>Labels and calculation</summary>
             <h3>Calculation details</h3><p>${r.gradeAfterRepair ? 'These points describe the condition after the recorded repairs.' : 'The points and part rules together determine the grade.'}</p>
             <div class="detail-table"><div class="detail-row header"><span>Part</span><span>Choice / impact</span><span>Score</span></div>${(r.detailRows || []).map(row => `<div class="detail-row"><span>${escapeHtml(row.naam)}</span><span>${escapeHtml(row.keuze === 'D' ? 'X' : row.keuze)}${row.impact && row.impact !== '-' ? ' / ' + escapeHtml(row.impact) : ''}</span><span>${row.punten}</span></div>`).join('')}<div class="detail-row total"><span>Total</span><span></span><span>${r.score}</span></div></div>
-            ${testOnly ? '' : `<h3>Label preview</h3><p>${getLabelRows(l, r).filter(Boolean).map(escapeHtml).join(' · ')}</p>${hasRepair ? `<p>${getLabelRows(l, r, 'problems').filter(Boolean).map(escapeHtml).join(' · ')}</p>` : ''}<div class="result-print-actions"><button class="btn btn-secondary" data-action="print_specs_label">Print Specs</button>${hasRepair ? `<button class="btn btn-secondary" data-action="print_problem_label">${extraLabelButton}</button>` : ''}</div>`}
+            ${testOnly ? '' : `<div class="result-print-actions"><button class="btn btn-secondary" data-action="print_specs_label">Print Specs</button>${hasRepair ? `<button class="btn btn-secondary" data-action="print_problem_label">${extraLabelButton}</button>` : ''}</div>`}
           </details>
       <footer class="nav-buttons result-actions">
         <button class="btn btn-secondary" data-action="adjust">← Adjust</button>
@@ -2784,7 +2846,7 @@ function renderResult() {
             <button class="btn btn-secondary" data-action="new_test">New Test</button>
             <button class="btn btn-primary" data-action="finish_test">Done</button>
           ` : `
-            <button class="btn btn-primary" data-action="confirm_save">Confirm & Print</button>
+            <button class="btn btn-primary" data-action="confirm_save">${printTypes.length === 2 ? 'Confirm & print 2 labels' : 'Confirm & print 1 label'}</button>
           `}
         </div>
       </footer></div>

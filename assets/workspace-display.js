@@ -97,7 +97,24 @@ function installWorkspaceDisplay() {
   window.addEventListener('resize', update);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', update);
   if (typeof document.addEventListener === 'function') {
+    document.addEventListener('pointerdown', event => {
+      const settings = document.getElementById('topbar-settings');
+      if (settings?.open && !settings.contains(event.target)) closeTopbarSettings();
+    }, true);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && closeTopbarSettings(true)) {
+        event.preventDefault(); event.stopPropagation();
+      }
+    }, true);
     document.addEventListener('fullscreenchange', update);
     document.addEventListener('webkitfullscreenchange', update);
   }
+}
+
+function closeTopbarSettings(returnFocus = false) {
+  const settings = document.getElementById('topbar-settings');
+  if (!settings?.open) return false;
+  settings.open = false;
+  if (returnFocus) settings.querySelector('summary')?.focus();
+  return true;
 }

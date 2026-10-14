@@ -77,7 +77,24 @@ async function tryOfflineLogin(id,password) {
   const before=STATE.currentUser;
   STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId=entry.workspaceId;STATE.currentUser=entry.user;
   if(!await beginLocalWork({allowEmpty:true})) {STATE.currentUser=before;return false;}
+  try {sessionStorage.setItem('remarktOfflineTabSessionV1',JSON.stringify({id,workspaceId:entry.workspaceId,proof:entry.proof,expiresAt:Date.now()+12*60*60*1000}));}catch{}
   STATE.currentScreen='home';STATE.homeTab='workflow';setAppMessage(null);return true;
+}
+async function restoreOfflineTabSession() {
+  if (!isContinuityFailure(STATE.sharedStorageError)) return false;
+  try {
+    const saved=JSON.parse(sessionStorage.getItem('remarktOfflineTabSessionV1') || 'null');
+    const entry=saved && offlineLoginEntries()[saved.id];
+    if(!entry || !Number.isFinite(saved.expiresAt) || saved.expiresAt<=Date.now() || saved.workspaceId!==entry.workspaceId ||
+      (STATE.sharedWorkspaceId && STATE.sharedWorkspaceId!==entry.workspaceId) || saved.proof!==entry.proof ||
+      !Number.isFinite(entry.verifiedAt) || Date.now()-entry.verifiedAt>OFFLINE_LOGIN_AGE || entry.user.mustChangePassword)return false;
+    const current=USERS.find(user=>user.id===saved.id);
+    if(current && ['rol','laptopAccess','monitorAccess','passwordUpdatedAt','mustChangePassword'].some(key=>current[key]!==entry.user[key]))return false;
+    const before=STATE.currentUser;
+    STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId=entry.workspaceId;STATE.currentUser=entry.user;
+    if(!await beginLocalWork({allowEmpty:true})){STATE.currentUser=before;return false;}
+    STATE.currentScreen='home';STATE.homeTab='workflow';return true;
+  }catch{return false;}
 }
 function localWorkNoticeIdentity() {
   return {

@@ -107,6 +107,8 @@ function consumeLoginResetRequest() {
     localStorage.removeItem(DEMO_STORAGE_KEYS.users);
     localStorage.removeItem(DEMO_STORAGE_KEYS.session);
     sessionStorage.removeItem(DEMO_STORAGE_KEYS.session);
+    sessionStorage.removeItem('remarktServerSessionV1');
+    sessionStorage.removeItem('remarktOfflineTabSessionV1');
   } catch {
     // Storage can be blocked; the normal live refresh will still run on login.
   }
@@ -733,6 +735,7 @@ function clearSessionUser() {
   STATE.monitorReprintPrompt = null;
   if (typeof setLiveSessionToken === 'function') setLiveSessionToken('');
   try {
+    sessionStorage.removeItem('remarktOfflineTabSessionV1');
     sessionStorage.removeItem(DEMO_STORAGE_KEYS.session);
     localStorage.removeItem(DEMO_STORAGE_KEYS.session);
   } catch {
