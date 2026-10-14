@@ -44,7 +44,7 @@ async function initApp() {
 // DOM en nog niet in STATE, dus een render() zou ze wissen. STATE wordt wel
 // bijgewerkt; de view herbouwt vanzelf zodra de gebruiker verdergaat.
 function liveRenderWouldDisruptInput() {
-  if (typeof STATE !== 'undefined' && STATE && STATE.currentScreen === 'monitor_manual') return true;
+  if (typeof STATE !== 'undefined' && STATE && ['monitor_manual', 'missing_specs'].includes(STATE.currentScreen)) return true;
   if (typeof document === 'undefined') return false;
   const el = document.activeElement;
   if (!el || el === document.body) return false;

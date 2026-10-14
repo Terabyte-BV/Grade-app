@@ -437,6 +437,15 @@ function syncModeSelectForRole(role, modeSelect) {
 }
 
 function handleDelegatedInput(e) {
+  if (STATE.currentScreen === 'missing_specs' && e.target.dataset?.hardwareSpec && STATE.currentGrading) {
+    const field = e.target.dataset.hardwareSpec;
+    if (['processor', 'ram', 'ssd'].includes(field)) {
+      const g = STATE.currentGrading;
+      g.specificationDraft = { ...g.specificationDraft, [field]: e.target.value };
+      persistGuidedDraft();
+    }
+    return;
+  }
   if (e.target.id === 'scanInput' && ['scan', 'sticker_scan'].includes(STATE.currentScreen)) {
     scheduleLaptopCodeSearch(e.target.value); return;
   }
@@ -1721,6 +1730,19 @@ async function handleAction(action, el) {
     case 'confirm_save':
       await confirmSaveWithAutomaticLabels();
       return;
+    case 'complete_specifications':
+      await completeMissingSpecifications(false);
+      return;
+    case 'review_specifications':
+      if (STATE.currentGrading) STATE.currentGrading.specificationsReviewed = false;
+      requestMissingSpecifications();
+      return;
+    case 'skip_specifications':
+      await completeMissingSpecifications(true);
+      return;
+    case 'specifications_back':
+      STATE.currentScreen = 'result';
+      break;
     case 'finish_test':
       STATE.currentLaptop = null;
       STATE.currentGrading = null;
@@ -3304,6 +3326,88 @@ async function confirmSaveWithAutomaticLabels() {
   try { return await performConfirmSaveWithAutomaticLabels(); }
   finally {if(grading)grading._processingSave=false;}
 }
+
+function requestMissingSpecifications(next = 'confirm') {
+  const g = STATE.currentGrading;
+  const l = STATE.currentLaptop;
+  if (!g?.result || !l || g.testOnly || l.testOnly || (!g.specificationsPendingSave && (g.specificationsReviewed || !getMissingLaptopSpecifications(l).length))) return false;
+  g.specificationNextAction = next;
+  STATE.currentScreen = 'missing_specs';
+  render();
+  return true;
+}
+
+async function completeMissingSpecifications(skip = false) {
+  const g = STATE.currentGrading;
+  const l = STATE.currentLaptop;
+  if (STATE.currentScreen !== 'missing_specs' || !g?.result || !l || g._processingSpecifications) return false;
+  const updates = {};
+  g.specificationErrors = {};
+  if (!skip) {
+    const draft = g.specificationDraft || {};
+    for (const field of getMissingLaptopSpecifications(l)) {
+      const value = String(document.getElementById(`checked-${field}`)?.value ?? draft[field] ?? '').trim();
+      g.specificationDraft = { ...g.specificationDraft, [field]: value };
+      if (!value) continue; // Only record specifications that were actually checked.
+      if (field === 'processor') {
+        if (value.length < 3 || value.length > 120 || !/[a-z]/i.test(value) || /[<>\u0000-\u001f]/.test(value) || isMissingHardwareSpec(value))
+          g.specificationErrors[field] = 'Enter the checked CPU model, for example i7-8665U.';
+        else updates[field] = sanitizeExternalText(value, 120);
+      } else if (field === 'ssd') {
+        const match = value.match(/^(\d+(?:[.,]\d+)?)\s*(GB|TB)?$/i);
+        const amount = match ? Number(match[1].replace(',', '.')) : 0;
+        const unit = (match?.[2] || 'GB').toUpperCase();
+        if (!Number.isFinite(amount) || amount <= 0 || amount * (unit === 'TB' ? 1000 : 1) > 128000)
+          g.specificationErrors[field] = 'Enter the installed storage, for example 512 GB or 1 TB.';
+        else updates[field] = `${amount}${unit}`;
+      } else {
+        const amount = Number(value.replace(',', '.').replace(/\s*GB$/i, '').trim());
+        if (!/^\d+(?:[.,]\d+)?\s*(?:GB)?$/i.test(value) || !Number.isFinite(amount) || amount <= 0 || amount > 2048)
+          g.specificationErrors[field] = 'Enter the installed RAM in GB, for example 16.';
+        else updates[field] = `${amount}GB`;
+      }
+    }
+    if (!Object.keys(updates).length && !Object.keys(g.specificationErrors).length && getMissingLaptopSpecifications(l).length)
+      g.specificationErrors[getMissingLaptopSpecifications(l)[0]] = 'Enter a checked specification, or choose Not determined to continue.';
+    if (Object.keys(g.specificationErrors).length) {
+      render();
+      document.getElementById(`checked-${Object.keys(g.specificationErrors)[0]}`)?.focus();
+      return false;
+    }
+  }
+  g._processingSpecifications = true;
+  const userId = STATE.currentUser?.id;
+  try {
+    const batchLaptop = getLaptopBySticker(l.sticker);
+    // A live refresh can detach the inspected object. Update the inventory too,
+    // but never replace a known value supplied by another workstation meanwhile.
+    for (const [field, value] of Object.entries(updates)) {
+      if (batchLaptop && !isMissingHardwareSpec(batchLaptop[field])) l[field] = batchLaptop[field];
+      else { l[field] = value; if (batchLaptop) batchLaptop[field] = value; }
+    }
+    if (Object.keys(updates).length) {
+      logAudit('complete_laptop_specifications', 'laptop', l.sticker, { fields: Object.keys(updates), source: 'physical_check' });
+      g.specificationsPendingSave = true;
+    }
+    if (g.specificationsPendingSave) {
+      await saveSharedDemoState();
+      if (STATE.currentGrading !== g || STATE.currentUser?.id !== userId || STATE.currentScreen !== 'missing_specs') return false;
+      if (STATE.localBackupError) {
+        setAppMessage('Specifications could not be secured locally. Keep this page open and retry before printing.', 'warning');
+        render(); return false;
+      }
+      g.specificationsPendingSave = false;
+    }
+    g.specificationsReviewed = true;
+    STATE.currentScreen = 'result';
+    if (['specs', 'problems'].includes(g.specificationNextAction)) {
+      await printCurrentLabel(g.specificationNextAction);
+      render();
+    } else await confirmSaveWithAutomaticLabels();
+    return true;
+  } finally { g._processingSpecifications = false; }
+}
+
 async function performConfirmSaveWithAutomaticLabels() {
   const g = STATE.currentGrading;
   const l = STATE.currentLaptop;
@@ -3319,6 +3423,7 @@ async function performConfirmSaveWithAutomaticLabels() {
     return;
   }
 
+  if (requestMissingSpecifications()) return false;
   const printTypes = getLaptopLabelPrintTypes(l, g.result);
   const printJobs = printTypes.map(type => createLaptopLabelPrintJob(l, g.result, type));
 

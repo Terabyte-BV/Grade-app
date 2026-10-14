@@ -942,6 +942,17 @@ function getLaptopBySticker(sticker) {
   return LAPTOP_INDEX.get(raw) || LAPTOP_INDEX.get(normalizeStickerCode(raw)) || null;
 }
 
+// Supplier placeholders describe missing data, not installed hardware. Keep
+// existing imports intact; use this predicate at import and inspection time.
+function isMissingHardwareSpec(value) {
+  const text = normalizeText(value).replace(/[()[\]]/g, '').replace(/[_-]+/g, ' ').trim();
+  return !text || /^(?:not?\s+reported|not\s+(?:available|provided|specified|detected)|unknown|unreported|n\s*\/\s*a|none|null|onbekend|niet\s+(?:bekend|vermeld|opgegeven)|0(?:[.,]0+)?(?:\s*(?:mb|gb|tb))?)$/i.test(text);
+}
+
+function getMissingLaptopSpecifications(laptop = STATE.currentLaptop) {
+  return ['processor', 'ram', 'ssd'].filter(field => isMissingHardwareSpec(laptop && laptop[field]));
+}
+
 function normalizeLaptopScanCode(value) {
   return String(value || '').trim().replace(/\s+/g, '').toUpperCase();
 }

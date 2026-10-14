@@ -300,7 +300,14 @@ test('employee login and manager password administration remain reliable on a sh
           keuzes:Object.fromEntries(getGradingOnderdelen().map(part=>[part.id,'A'])),triggers:[],impactOverrides:{},
           result:{eindgrade:'A',score:0,problems:[],redenen:[]}};`,app);
       await app.confirmSaveWithAutomaticLabels();
+      assert.equal(vm.runInContext('STATE.currentScreen',app),'missing_specs');
+      assert.equal(physicalPrints,0,'Unknown supplier specs must be checked before the first label');
+      fields['checked-processor']={value:'i7-8665U'};
+      fields['checked-ram']={value:'16'};
+      fields['checked-ssd']={value:'512 GB'};
+      await app.completeMissingSpecifications();
       assert.equal(physicalPrints,1);assert.equal(vm.runInContext('STATE.history.length',app),1);
+      assert.equal(app.readLocalDemoStateBackup().history[0].ram,'16GB');
       assert.match(vm.runInContext('STATE.appMessage.text',app),/saved locally/);
       assert.equal(vm.runInContext("STATE.pendingRecordMutation.operations.filter(op=>op.collection==='batches').length",app),0);
       const originalMutation=vm.runInContext('STATE.pendingRecordMutation.mutationId',app);
@@ -325,6 +332,9 @@ test('employee login and manager password administration remain reliable on a sh
       assert.equal(vm.runInContext('STATE.sharedSyncPending',app),false);
       assert.equal((await store.page({collection:'history',userId:'staff-8'})).records.length,2);
       assert.equal((await store.detail('history','offline-history-2')).payload.grade,'B');
+      const recoveredLaptop=(await store.detail('laptops','["work-batch","QA-100"]')).payload;
+      assert.equal(recoveredLaptop.processor,'i7-8665U');assert.equal(recoveredLaptop.ram,'16GB');
+      assert.equal(recoveredLaptop.ssd,'512GB');
       assert.ok(posts>=3);
       // An exported pending snapshot remains independently recoverable.
       assert.equal(secured.history.length,2);assert.ok(secured._pendingRecordMutation);

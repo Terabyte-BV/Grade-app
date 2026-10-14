@@ -489,7 +489,7 @@ function importedRowToLaptop(row, sourceName, forcedSticker = '') {
   const description=parseAccountLaptopDescription(row);
   const specValue=(names,maxLength=160)=>{
     const text=value(names,maxLength);
-    return /^0(?:[.,]0+)?(?:\s*(?:MB|GB|TB))?$/i.test(text)?'':text;
+    return isMissingHardwareSpec(text)?'':text;
   };
   const deviceName = value(['Device Name', 'DeviceName', 'Product Name', 'Omschrijving', 'Description', 'Name'], 180);
   const merk = specValue(['BIOS Make', 'Make', 'Brand', 'Merk', 'Manufacturer'], 80) || description.merk || deviceName.split(' ')[0] || '';

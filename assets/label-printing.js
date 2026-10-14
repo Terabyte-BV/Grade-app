@@ -200,7 +200,7 @@ function getSpecsLabelRows(laptop, result, options = {}) {
 
   return [
     dedupeLabelBrand(`${labelValue(laptop.merk, '')} ${labelValue(laptop.model, '')}`.trim()),
-    `${labelValue(compactProcessorForLabel(laptop.processor))} / ${labelValue(laptop.ram)} / ${labelValue(laptop.ssd)}`,
+    `${labelValue(isMissingHardwareSpec(laptop.processor) ? '' : compactProcessorForLabel(laptop.processor))} / ${labelValue(isMissingHardwareSpec(laptop.ram) ? '' : laptop.ram)} / ${labelValue(isMissingHardwareSpec(laptop.ssd) ? '' : laptop.ssd)}`,
     options.hideGrade ? `Grade ...... / Touch ${touch}` : `Grade ${grade} / Touch ${touch}`,
     row4Parts.join(' / ')
   ];
@@ -1356,6 +1356,7 @@ async function printCurrentLabel(type = 'specs') {
     render();
     return;
   }
+  if (requestMissingSpecifications(type)) return;
   await printLabelFor(STATE.currentLaptop, STATE.currentGrading.result, type);
 }
 

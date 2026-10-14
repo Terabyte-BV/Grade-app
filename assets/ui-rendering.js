@@ -118,6 +118,7 @@ function render() {
     else if (STATE.currentScreen === 'grading_beginner') html += renderGradingBeginner();
     else if (STATE.currentScreen === 'grading_expert') html += renderGradingExpert();
     else if (STATE.currentScreen === 'result') html += renderResult();
+    else if (STATE.currentScreen === 'missing_specs') html += renderMissingSpecifications();
     else if (STATE.currentScreen === 'history') html += renderHistory();
     else if (STATE.currentScreen === 'analytics') html += renderAnalytics();
     else if (STATE.currentScreen === 'explain') html += renderExplain();
@@ -127,6 +128,10 @@ function render() {
   if (typeof translateRenderedApp === 'function') translateRenderedApp(app);
   if (typeof fitInspectionViewport === 'function') fitInspectionViewport();
   attachListeners();
+  if (STATE.currentScreen === 'missing_specs') {
+    if (!app.dataset.specificationsFocus) document.getElementById('checked-specifications-title')?.focus({ preventScroll: true });
+    app.dataset.specificationsFocus = 'true';
+  } else { delete app.dataset.specificationsFocus; }
   if (keepSettingsOpen) {
     const settings = document.getElementById('topbar-settings');
     if (settings) {
@@ -430,6 +435,7 @@ function getScreenBackAction(screen) {
     grading_beginner: 'back_scan',
     grading_expert: 'back_scan',
     result: 'back_scan',
+    missing_specs: 'specifications_back',
   };
   return map[screen] || null;
 }
@@ -2810,6 +2816,31 @@ function renderResultPrintPlan(laptop, result, testOnly = false) {
   </section>`;
 }
 
+function renderMissingSpecifications() {
+  const g = STATE.currentGrading;
+  const l = STATE.currentLaptop;
+  const missing = getMissingLaptopSpecifications(l);
+  const draft = g.specificationDraft || {};
+  const errors = g.specificationErrors || {};
+  const labels = { processor: 'Processor (CPU)', ram: 'Memory (RAM)', ssd: 'Storage (SSD / HDD)' };
+  return `<main class="screen checked-specifications" aria-labelledby="checked-specifications-title">
+    <header class="inspection-header"><h1 id="checked-specifications-title" tabindex="-1">Complete missing specifications</h1><span class="inspection-device" data-i18n-skip>${escapeHtml(l.merk)} ${escapeHtml(l.model)} · ${escapeHtml(l.sticker)}</span></header>
+    <p>The supplier did not provide all specifications. Enter what you checked on the laptop before printing.</p>
+    <div class="checked-specifications-fields">${missing.map(field => `<div class="checked-specifications-field">
+      <label for="checked-${field}">${labels[field]}</label>
+      <input id="checked-${field}" data-hardware-spec="${field}" type="text" ${field === 'ram' ? 'inputmode="decimal"' : ''} maxlength="${field === 'processor' ? 120 : 12}" autocomplete="off" spellcheck="false" value="${escapeHtml(draft[field] || '')}" placeholder="${field === 'processor' ? 'i7-8665U' : field === 'ssd' ? '512 GB / 1 TB' : '16'}" aria-describedby="checked-${field}-hint${errors[field] ? ` checked-${field}-error` : ''}" ${errors[field] ? 'aria-invalid="true"' : ''}>
+      <p id="checked-${field}-hint">${field === 'processor' ? 'Use the actual CPU model, not just Intel or AMD.' : field === 'ssd' ? 'Installed storage capacity in GB or TB. A number without a unit means GB.' : 'Installed memory in GB.'}</p>
+      ${errors[field] ? `<p id="checked-${field}-error" class="checked-specifications-error" role="alert">${escapeHtml(translateCopy(errors[field]))}</p>` : ''}
+    </div>`).join('')}</div>
+    <p class="checked-specifications-note">Leave values you cannot determine empty.</p>
+    <p class="checked-specifications-note">These specifications are saved with this device and used on labels and reprints. The grade does not change.</p>
+    <footer class="nav-buttons"><button type="button" class="btn btn-secondary" data-action="specifications_back">Back to overview</button><div class="result-print-actions">
+      <button type="button" class="btn btn-secondary" data-action="skip_specifications">Not determined — continue</button>
+      <button type="button" class="btn btn-primary" data-action="complete_specifications">Save specifications & print</button>
+    </div></footer>
+  </main>`;
+}
+
 function renderResult() {
   const g = STATE.currentGrading;
   const r = g.result;
@@ -2867,6 +2898,7 @@ function renderResult() {
             <button class="btn btn-secondary" data-action="new_test">New Test</button>
             <button class="btn btn-primary" data-action="finish_test">Done</button>
           ` : `
+            ${getMissingLaptopSpecifications(l).length ? '<button type="button" class="btn btn-secondary" data-action="review_specifications">Complete missing specifications</button>' : ''}
             <button class="btn btn-primary" data-action="confirm_save">${printTypes.length === 2 ? 'Confirm & print 2 labels' : 'Confirm & print 1 label'}</button>
           `}
         </div>
