@@ -2187,6 +2187,11 @@ let durableBackup = null;
 let durableBackupWrite = Promise.resolve(true);
 let recoveryDatabase = null;
 
+function localRecoveryCopyTimestamp(snapshot) {
+  const savedAt=Number(snapshot?._localSavedAt);
+  return Number.isSafeInteger(savedAt) && savedAt>0 ? savedAt : getSharedDemoStateTimestamp(snapshot);
+}
+
 function openRecoveryDatabase() {
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
   if (!recoveryDatabase) recoveryDatabase = new Promise((resolve, reject) => {
@@ -2213,7 +2218,7 @@ async function loadDurableBackup() {
       // IndexedDB copy. Never replace the newer recovery point silently.
       let legacy = null;
       try { legacy = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEYS.sharedBackup) || 'null'); } catch {}
-      durableBackup = getSharedDemoStateTimestamp(legacy) > getSharedDemoStateTimestamp(saved) ? legacy : saved;
+      durableBackup = localRecoveryCopyTimestamp(legacy) > localRecoveryCopyTimestamp(saved) ? legacy : saved;
     }
   } catch { /* The legacy localStorage copy remains a fallback. */ }
 }
@@ -2230,7 +2235,7 @@ function saveLocalDemoStateBackup(snapshot = getSharedDemoSnapshot()) {
       _recordPendingBase:previousBackup?._recordPendingBase || lastSharedStateSnapshot,
       _recordMutationOptions:previousBackup?._recordMutationOptions || {},_clientSyncPending:true};
   }
-  let backupSnapshot = { ...snapshot,
+  let backupSnapshot = { ...snapshot, _localSavedAt: Date.now(),
     ...(snapshot.storageRevision || (snapshot.workspaceId===previousBackup?.workspaceId && previousBackup?.storageRevision)
       ? { storageRevision: snapshot.storageRevision || previousBackup.storageRevision } : {}),
   };

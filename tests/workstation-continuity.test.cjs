@@ -264,3 +264,30 @@ test('Manager Live remains readable while an earlier write is held for authoriza
   assert.equal(container.state,'ready');assert.doesNotMatch(container.html,/database figures unavailable/);
   assert.deepEqual(calls,['/api/stats']);assert.equal(app.hasRecordSyncReview(),true);
 });
+
+test('a stale localStorage copy cannot hide newly secured inventory after IndexedDB saves a larger work list',async()=>{
+  const {IDBFactory}=await import('fake-indexeddb');const indexedDB=new IDBFactory();
+  const first=loadAppSandbox({indexedDB});
+  const old={version:1,storageFormat:3,workspaceId:'cache-size-qa',storageRevision:5,
+    users:[],batches:[{id:'old',laptops:[{sticker:'OLD'}]}],monitorBatches:[],history:[],labelPrints:[],monitorLabelPrints:[],auditLogs:[],updatedAt:'2026-10-29T10:10:00Z'};
+  await first.saveLocalDemoStateBackup(old);
+  const legacy=first.localStorage.getItem('remarktDemoStateBackupV1');
+  first.localStorage.setItem=()=>{throw Error('QuotaExceededError');};
+  const current={...old,storageRevision:6,batches:[...old.batches,{id:'latest',laptops:[{sticker:'LATEST'}]}],updatedAt:'2026-10-29T10:00:00Z'};
+  assert.equal(await first.saveLocalDemoStateBackup(current),true);
+  const reopened=loadAppSandbox({indexedDB,localStorage:{remarktDemoStateBackupV1:legacy}});
+  await reopened.loadDurableBackup();
+  assert.equal(reopened.readLocalDemoStateBackup().storageRevision,6);
+  assert.ok(reopened.readLocalDemoStateBackup().batches.some(batch=>batch.id==='latest'));
+});
+
+test('legacy recovery copies without a local save clock keep their original upgrade ordering',async()=>{
+  const {IDBFactory}=await import('fake-indexeddb');const indexedDB=new IDBFactory();
+  const first=loadAppSandbox({indexedDB});await first.saveLocalDemoStateBackup({users:[],history:[],updatedAt:'2026-01-01T10:00:00Z'});
+  const db=await first.openRecoveryDatabase();
+  await new Promise((resolve,reject)=>{const tx=db.transaction('backups','readwrite');
+    tx.objectStore('backups').put({users:[],history:[{id:'older-idb'}],updatedAt:'2026-01-01T10:00:00Z'},'current');
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+  const reopened=loadAppSandbox({indexedDB,localStorage:{remarktDemoStateBackupV1:JSON.stringify({users:[],history:[{id:'newer-legacy'}],updatedAt:'2026-01-01T11:00:00Z'})}});
+  await reopened.loadDurableBackup();assert.equal(reopened.readLocalDemoStateBackup().history[0].id,'newer-legacy');
+});
