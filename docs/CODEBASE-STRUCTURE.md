@@ -4,7 +4,9 @@ Deze app draait als standalone browserapp met losse scripts in een vaste laadvol
 
 ## Entrypoint
 
-`remarkt-grading-app.html` is de enige HTML-shell. Dit bestand laadt de CSS, maakt de app-root aan en laadt daarna alle scripts in productievolgorde.
+`index.html` is de huidige productie-shell. Dit bestand laadt de CSS, maakt de app-root aan en laadt daarna alle scripts in productievolgorde. Gebruik de scriptvolgorde uit dit bestand als bron; de onderstaande oudere modulelijst is een globaal overzicht en geen volledige actuele laadlijst.
+
+Aanvullend verzorgen `assets/record-sync.js` het recordtransport/de serversessie, `assets/offline-work.js` lokale continuïteit en `assets/ui-feedback.js` gedeelde laadfeedback. De productie-API's staan in `api/`, de PostgreSQL-recordlaag in `api/_lib/record-state.mjs` en `api/_lib/postgres-state.mjs`. Zie [README](../README.md) en [serveroverdracht](SERVER-OVERDRACHT.md) voor de actuele hosting- en databasegrenzen.
 
 Belangrijk: wijzig de scriptvolgorde alleen als je ook de smoke-test bijwerkt. De modules delen nu bewust globale functies en state.
 
@@ -60,7 +62,7 @@ Houd deze grenzen aan om te voorkomen dat nieuwe workflowlogica verspreid raakt 
 
 Verwijder bestanden alleen als aan alle punten is voldaan:
 
-- Geen directe referentie in `remarkt-grading-app.html`, `assets/`, `tests/`, `docs/` of `tools/`.
+- Geen directe referentie in `index.html`, `assets/`, `tests/`, `docs/` of `tools/`.
 - Geen berekende padreferentie vanuit `VISUAL_ASSETS`, workflowbanners, monitorpoorthelpers of printtemplates.
 - Smoke-tests blijven groen.
 - Het bestand staat niet in een live data- of vendorpad.

@@ -1,4 +1,6 @@
-# Vercel deployment + database (Vercel KV / Upstash Redis)
+# Historisch: Vercel KV / Upstash Redis
+
+> **Niet gebruiken als actuele installatiehandleiding.** Dit document beschrijft de oude Redis-route. De huidige productie gebruikt PostgreSQL-recordopslag v3. Zie [README](../README.md), [serveroverdracht](SERVER-OVERDRACHT.md) en [recordopslag v3](RECORD-STORAGE.md). Voer de onderstaande oude setup-/importstappen niet uit bij het overzetten van de bestaande werkdatabase.
 
 De ReMarkt Grading App draait op Vercel als **statische app + serverless API**,
 met **Vercel KV (Upstash Redis)** als gedeelde database. Dit vervangt de oude

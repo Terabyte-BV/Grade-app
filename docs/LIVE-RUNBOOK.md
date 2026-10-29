@@ -1,39 +1,14 @@
-# Live Runbook
+# Live runbook
 
-Wanneer gevraagd wordt om de Grade app live te zetten, altijd eerst deze checks draaien.
+De huidige productie gebruikt PostgreSQL-recordopslag v3. De oude KV- en lokale JSON-instructies zijn geen reguliere releaseprocedure.
 
-1. Volledige testset:
-   ```powershell
-   node --test tests\grading-engine-smoke.test.js
-   ```
+1. Controleer repository, branch, commit en doelomgeving. Bedrijfsrepository voor de overdracht: `Terabyte-BV/Grade-app`, branch `main`. Controleer de expliciete remote: een lokale remote kan een ander project aanwijzen.
+2. Voer `npm test` uit voor de volledige suite. Alleen de grading-smoketest is onvoldoende. Voer ook `npm run check`, syntaxchecks voor gewijzigde browserbestanden en `git diff --check` uit.
+3. Controleer configuratie zonder waarden te publiceren: effectieve database-URL, `REMARKT_STORAGE_FORMAT=3`, bestaande workspace en sessiesleutel. Een gewone release vraagt geen KV-import, seed of databasemigratie.
+4. Houd operationele data, herstelkopieën en geheimen buiten Git en de publieke documentroot. Bewaar werk van desktops met openstaande synchronisatie.
+5. Bij Vercel: controleer de GitHub App-toegang na repositorytransfer. Wacht op Ready voor de juiste commit in het juiste project/team. Controleer productiealias en buildmarkering in `index.html`.
+6. Controleer gewijzigde live bestanden en begrensde runtime-logs. Bekijk endpointmetrics in de geneste requestlogs; alleen error-level is onvoldoende voor applicatie-403/409/429. Log geen tokens of records.
+7. Test met een geautoriseerde sessie: login, nieuwe batch/scannen, opslaan en Manager Live. `/api/health` en `/api/stats` zijn in v3 beveiligd; anonieme 401 betekent niet dat de database defect is. Gebruik afgesproken testapparatuur voor echte writes/prints.
+8. Laat betrokken werkplekken de nieuwe code laden. Verversen leest gegevens; Ctrl+F5 haalt ook nieuwe scripts op. Wis geen browseropslag als synchronisatie openstaat. Een geslaagde publicatie bewijst geen herstel van iedere lokale werkplek.
 
-2. Syntaxchecks:
-   ```powershell
-   node --check assets\app-state.js
-   node --check assets\app-workflow.js
-   node --check assets\ui-rendering.js
-   node --check assets\label-printing.js
-   node --check assets\analytics-history.js
-   node --check tools\remarkt-static-server.mjs
-   node --check api\_lib\state-core.mjs
-   node --check api\_lib\state.mjs
-   node --check api\demo-state.mjs
-   node --check api\health.mjs
-   node --check api\stats.mjs
-   ```
-   (kortweg: `npm run check`)
-
-3a. Lokaal/tunnel (oude route), alleen als alles groen is:
-   - lokale server starten/herstarten op `http://127.0.0.1:8080`
-   - `/api/health` controleren
-   - Cloudflare tunnel starten
-   - publieke tunnel-URL controleren op app HTML en `/api/health`
-
-3b. Vercel + KV (productie), zie `docs/VERCEL-DEPLOY.md`:
-   - pushen naar GitHub → Vercel deployt automatisch
-   - KV store gekoppeld + env vars aanwezig
-   - éénmalig data migreren: `npm run migrate:kv`
-   - controleer `/api/health` en `/api/stats` op de Vercel-URL
-   - controleer de dashboard-strip “Live uit database”
-
-Als een test of check faalt, de app niet live zetten voordat de oorzaak is opgelost of expliciet is afgestemd.
+Bij falende checks niet publiceren totdat de oorzaak is opgelost of expliciet afgestemd. Voor databaseverhuizing geldt het afzonderlijke [migratie- en terugvalplan](SERVER-OVERDRACHT.md), inclusief schrijfstop, gecontroleerde export, lokaal werk en proefherstel.
