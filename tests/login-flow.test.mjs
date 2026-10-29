@@ -412,6 +412,61 @@ test('employee login and manager password administration remain reliable on a sh
       assert.equal((await store.detail('history','held-for-owner')).payload.user_id,'staff-9');
       assert.equal((await store.detail('history','new-work-while-held')).payload.user_id,'staff-11');
     });
+    await t.test('full browser storage and a foreign outbox do not trap different employees on one workstation',async()=>{
+      const indexedDB=new IDBFactory(),app=loadAppSandbox({gzip:true,indexedDB});
+      app.URLSearchParams=URLSearchParams;app.account=staff[20];app.token=issueSession(staff[20],'login-qa');
+      vm.runInContext("STATE.currentUser=account;STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='login-qa';STATE.currentScreen='scan';setLiveSessionToken(token);",app);
+      const calls=[];
+      app.fetch=async(url,options={})=>{
+        const result={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(code){this.statusCode=code;return this;},json(data){this.data=data;}};
+        await directory({method:options.method||'GET',url,headers:{authorization:options.headers?.Authorization},body:options.body?JSON.parse(options.body):undefined},result);
+        calls.push({url,method:options.method||'GET',status:result.statusCode});
+        return new Response(JSON.stringify(result.data),{status:result.statusCode,headers:result.headers});
+      };
+      assert.equal(await app.loadRecordState(),true);
+      vm.runInContext(`STATE.history.push({id:'desk-stuck-work',sticker:'SYNC-READ-400',grade:'B',user_id:'staff-21'});
+        STATE.pendingRecordMutation=createRecordMutation(getSharedDemoSnapshot(),lastSharedStateSnapshot);STATE.sharedSyncPending=true;`,app);
+      await app.saveLocalDemoStateBackup();
+      const mutation=app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId;
+      const colleague=await store.detail('users','staff-22');
+      await store.merge({mutationId:randomUUID(),operations:[
+        {collection:'users',id:'staff-22',expectedRevision:colleague.revision,payload:{...colleague.payload,naam:'Updated directory name'}},
+        {collection:'batches',id:'desk-repair',expectedRevision:0,payload:{id:'desk-repair',nummer:'DESK-REPAIR',leverancier:'Synthetic'}},
+        {collection:'laptops',id:'["desk-repair","7926363"]',batchId:'desk-repair',expectedRevision:0,
+          payload:{sticker:'7926363',serial:'SN-DESK-REPAIR',merk:'HP',model:'QA',batchId:'desk-repair',batchNummer:'DESK-REPAIR'}}
+      ]});
+      app.localStorage.setItem=()=>{throw Object.assign(Error('Browser quota exceeded'),{name:'QuotaExceededError'});};
+      vm.runInContext("STATE.sharedStorageError='STORAGE_UNAVAILABLE';STATE.offlineWork=true;",app);
+      await app.refreshCurrentPage();
+      assert.ok(app.getLaptopBySticker('7926363'));assert.equal(calls.filter(call=>call.method==='POST').length,0);
+      await app.submitLaptopCode('007926363');assert.equal(vm.runInContext('STATE.currentLaptop.sticker',app),'7926363');
+      const work=app.readLocalDemoStateBackup();assert.equal(work._pendingRecordMutation.mutationId,mutation);
+      assert.ok(work.history.some(row=>row.id==='desk-stuck-work'));
+      // A different employee signs in on the same browser and durable database.
+      const reopened=loadAppSandbox({gzip:true,indexedDB});reopened.URLSearchParams=URLSearchParams;
+      reopened.account=staff[21];reopened.token=issueSession(staff[21],'login-qa');
+      vm.runInContext("STATE.currentUser=account;STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='login-qa';STATE.currentScreen='scan';setLiveSessionToken(token);",reopened);
+      reopened.localStorage.setItem=app.localStorage.setItem;reopened.fetch=app.fetch;
+      assert.equal(await reopened.loadRecordState({refreshInventory:true,readOnly:true}),true);
+      await reopened.submitLaptopCode('007926363');assert.equal(vm.runInContext('STATE.currentLaptop.sticker',reopened),'7926363');
+      assert.equal(reopened.readLocalDemoStateBackup()._pendingRecordMutation.mutationId,mutation);
+      assert.equal(await store.detail('history','desk-stuck-work'),null,'Repairing reads never uploads foreign work');
+      assert.equal(calls.filter(call=>call.method==='POST').length,0);
+    });
+    await t.test('a browser without compression support reads the real authenticated work snapshot as plain JSON',async()=>{
+      const app=loadAppSandbox({indexedDB:new IDBFactory()});app.URLSearchParams=URLSearchParams;
+      app.account=staff[23];app.token=issueSession(staff[23],'login-qa');
+      vm.runInContext("STATE.currentUser=account;STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='login-qa';STATE.currentScreen='scan';setLiveSessionToken(token);",app);
+      let rawReads=0;
+      app.fetch=async(url,options={})=>{
+        const result={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(code){this.statusCode=code;return this;},json(data){this.data=data;}};
+        await directory({method:'GET',url,headers:{authorization:options.headers?.Authorization}},result);
+        if(url.includes('?work=1')){rawReads++;assert.match(url,/raw=1/);assert.equal(result.data.gzip,undefined);assert.ok(Array.isArray(result.data.batches));}
+        return new Response(JSON.stringify(result.data),{status:result.statusCode,headers:result.headers});
+      };
+      assert.equal(await app.loadRecordState({refreshInventory:true,readOnly:true}),true);assert.equal(rawReads,1);
+      await app.submitLaptopCode('007926363');assert.equal(vm.runInContext('STATE.currentLaptop.sticker',app),'7926363');
+    });
     await t.test('refresh restores only a server-verified session without password or expiry extension',async()=>{
       const token=issueSession(staff[4],'login-qa');
       const restored=await request(undefined,token,'office',handler,'GET');

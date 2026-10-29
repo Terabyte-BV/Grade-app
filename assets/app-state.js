@@ -689,7 +689,16 @@ function loadUsers() {
 }
 
 function saveUsers() {
-  localStorage.setItem(DEMO_STORAGE_KEYS.users, JSON.stringify(USERS.map(serializeUser)));
+  try {
+    localStorage.setItem(DEMO_STORAGE_KEYS.users, JSON.stringify(USERS.map(serializeUser)));
+    return true;
+  } catch (error) {
+    // Server-verified accounts and the operational IndexedDB backup remain
+    // usable when the much smaller legacy localStorage cache is full.
+    if (!STATE.serverAuth || STATE.storageFormat !== 3) throw error;
+    reportAppWarning('Account cache unavailable; verified live accounts remain in use', error);
+    return false;
+  }
 }
 
 function getUserById(id) {

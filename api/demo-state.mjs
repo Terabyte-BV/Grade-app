@@ -35,7 +35,10 @@ export default async function handler(request, response) {
       if (request.method === 'GET') {
         const params = new URL(request.url, 'http://local').searchParams;
         if (params.get('meta') === '1') { response.status(200).json(await store.meta()); return; }
-        if (params.get('work') === '1') { response.status(200).json(toEnvelope(await store.workSnapshot())); return; }
+        if (params.get('work') === '1') {
+          const work=await store.workSnapshot();
+          response.status(200).json(params.get('raw')==='1'?work:toEnvelope(work)); return;
+        }
         if (params.has('trace')) { response.status(200).json(await store.trace(params.get('trace')));return; }
         if (params.has('since')) { response.status(200).json(await store.changes(Number(params.get('since')), params.get('after') || '')); return; }
         const collection = params.get('collection') || 'batches';

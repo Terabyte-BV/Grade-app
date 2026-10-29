@@ -172,6 +172,7 @@ const NL_COPY = {
   'This laptop is no longer available. Return to scanning.':'Deze laptop is niet meer beschikbaar. Ga terug naar scannen.',
   'Local work mode':'Lokale werkmodus',
   'Saved on this computer; synchronization is pending.':'Op deze computer opgeslagen; synchronisatie staat open.',
+  'Reload work lists':'Werklijsten opnieuw ophalen',
   'Restore work lists':'Werklijsten herstellen',
   'Local work instructions':'Instructies voor lokaal werken',
   'Do not clear browser data. Use separate devices or batches per workstation to avoid duplicate work.':'Wis geen browsergegevens. Verdeel apparaten of batches over werkplekken om dubbel werk te voorkomen.',

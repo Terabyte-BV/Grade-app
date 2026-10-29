@@ -30,6 +30,7 @@ async function restoreServerSession() {
   }
 }
 let appRetryAfter = 0;
+let appWriteRetryAfter = 0;
 let appStatsCache=null;
 const recordTraffic=[];
 function rememberRecordResponse(response) {
@@ -111,12 +112,17 @@ async function appFetch(url, options = {}) {
     try {
       const response = await fetch(url, settings);
       rememberRecordResponse(response);
-      if (response.status === 401 && STATE.serverAuth) {
+      if (response.status === 401 && STATE.serverAuth && token===liveSessionToken()) {
         setLiveSessionToken(''); clearSessionUser(); STATE.currentUser = null; STATE.currentScreen = 'login';
       }
       const authRequest = url === '/api/session' || /[?&]users=1\b/.test(url);
-      if (!authRequest && [429,503].includes(response.status))
-        appRetryAfter = Date.now() + (Number(response.headers?.get('Retry-After')) || 300) * 1000;
+      if (!authRequest && [429,503].includes(response.status)) {
+        const until=Date.now()+(Number(response.headers?.get('Retry-After')) || 300)*1000;
+        // A failed upload must not impose its cooldown on healthy reads.
+        // API rate limits still apply to both directions for this user.
+        if(method==='GET' || response.status===429)appRetryAfter=until;
+        else appWriteRetryAfter=until;
+      }
       if(method==='GET' && url==='/api/stats' && response.ok && typeof response.clone==='function')
         appStatsCache={key:requestKey,until:Date.now()+5000,response:response.clone()};
       return response;
@@ -281,19 +287,37 @@ async function loadRecordHistory(pageNumber=1) {
   } catch {markSharedStorageFailure(null);return false;}
 }
 let recordLoadRequest=null;
+let recordLoadOptions=null;
+let recordLoadSession='';
 async function loadRecordState(options = {}) {
-  if(recordLoadRequest) return recordLoadRequest;
+  if(recordLoadRequest) {
+    const activeOptions=recordLoadOptions || {};
+    const activeSession=recordLoadSession;
+    const loaded=await recordLoadRequest;
+    // A deliberate repair cannot be silently reduced to an older delta read
+    // that happened to be in progress when the employee pressed Refresh.
+    if(activeSession!==liveSessionToken() || (options.refreshInventory && !activeOptions.refreshInventory) || (options.readOnly && !activeOptions.readOnly))
+      return loadRecordState(options);
+    return loaded;
+  }
+  recordLoadOptions={...options};
+  recordLoadSession=liveSessionToken();
   recordLoadRequest=performRecordLoad(options);
-  try{return await recordLoadRequest;}finally{recordLoadRequest=null;}
+  try{return await recordLoadRequest;}finally{recordLoadRequest=null;recordLoadOptions=null;}
 }
-async function performRecordLoad({refreshInventory=false,retryBlockedSync=false} = {}) {
+async function performRecordLoad({refreshInventory=false,retryBlockedSync=false,readOnly=false} = {}) {
+  const session=liveSessionToken(),userId=STATE.currentUser?.id;
+  const active=()=>session===liveSessionToken() && userId===STATE.currentUser?.id;
   await loadDurableBackup();
   const backup = readLocalDemoStateBackup();
-  if (!liveSessionToken()) return typeof canWorkLocally==='function' && canWorkLocally();
+  if (!active())return false;
+  if (!session) return typeof canWorkLocally==='function' && canWorkLocally();
   try {
     const stampResponse = await appFetch(`${SHARED_DEMO_STATE_URL}?meta=1`, { cache: 'no-store' });
+    if(!active())return false;
     if (!stampResponse.ok)return recordLoadFailure(stampResponse);
     const stamp = await stampResponse.json();
+    if(!active())return false;
     STATE.sharedWorkspaceId=stamp.workspaceId;
     if(backup?.storageRevision!==stamp.storageRevision) {
       invalidateRecordInsights();
@@ -306,13 +330,15 @@ async function performRecordLoad({refreshInventory=false,retryBlockedSync=false}
       let after = '';
       do {
         const response = await appFetch(`${SHARED_DEMO_STATE_URL}?since=${backup.storageRevision}${after ? '&after=' + encodeURIComponent(after) : ''}`, { cache: 'no-store' });
+        if(!active())return false;
         if (!response.ok)return recordLoadFailure(response);
         const delta = await response.json(); rows.push(...delta.records); after = delta.next || '';
       } while (after);
     } else {
       // List projections, never full historical inspection trees. Pages are
       // bounded; detail requests use a single stable assessment identity.
-      const response=await appFetch(`${SHARED_DEMO_STATE_URL}?work=1`,{cache:'no-store'});
+      const response=await appFetch(`${SHARED_DEMO_STATE_URL}?work=1${SHARED_DEMO_STATE_SUPPORTS_GZIP?'':'&raw=1'}`,{cache:'no-store'});
+      if(!active())return false;
       if(!response.ok)return recordLoadFailure(response);
       state=await decodeSharedDemoStatePayload(await response.json());
       if(state.workspaceId!==stamp.workspaceId || state.storageFormat!==3 ||
@@ -322,10 +348,12 @@ async function performRecordLoad({refreshInventory=false,retryBlockedSync=false}
       state._workInventoryComplete=true;
     }
     const remote = applyRecordRows(state, rows);
+    if(!active())return false;
     remote.storageRevision = stamp.storageRevision; remote.updatedAt = stamp.updatedAt;
     // A snapshot cannot acknowledge writes occurring after its initial stamp.
     STATE.recordRevisions = remote.recordRevisions; STATE.storageFormat = 3; STATE.sharedWorkspaceId = stamp.workspaceId;
     STATE.sharedStorageError = null;
+    appRetryAfter=0;
     STATE.offlineWork=false;
     STATE.localSyncNeedsManager=false;
     STATE.offlineManualOnly=remote._workInventoryComplete===false;
@@ -341,7 +369,10 @@ async function performRecordLoad({refreshInventory=false,retryBlockedSync=false}
       applySharedDemoState(backup);STATE.currentUser=authenticatedUser;saveSessionUser(authenticatedUser);
       lastSharedStateSnapshot = backup._recordPendingBase || backup;
       const failure=backup._pendingRecordSyncFailure;
-      if(!retryBlockedSync && failure?.mutationId===pending.mutationId && failure.actor===recordSyncActor())
+      if(readOnly || (!retryBlockedSync && appWriteRetryAfter>Date.now()))
+        return applyReadStateWithHeldSync(remote,backup,pending,failure || {code:'SYNC_DEFERRED',mutationId:pending.mutationId,actor:recordSyncActor()});
+      if(!retryBlockedSync && failure?.mutationId===pending.mutationId && failure.actor===recordSyncActor() &&
+        ['AUTH_FORBIDDEN','STORAGE_RECORD_CONFLICT','STORAGE_MUTATION_CONFLICT','REQUEST_INVALID','REQUEST_TOO_LARGE'].includes(failure.code))
         return applyReadStateWithHeldSync(remote,backup,pending,failure);
       const savedRows=[];
       const saved=await saveRecordState(backup, pending, backup._recordMutationOptions || {}, savedRows);
@@ -353,19 +384,16 @@ async function performRecordLoad({refreshInventory=false,retryBlockedSync=false}
         STATE.offlineWork=false;STATE.sharedStorageError=null;STATE.currentScreen='password_change';
         return false;
       }
-      if(STATE.lastRecordSyncFailureCode==='AUTH_FORBIDDEN')
-        return applyReadStateWithHeldSync(remote,backup,pending,{code:'AUTH_FORBIDDEN',mutationId:pending.mutationId,actor:recordSyncActor()});
-      if(!saved) {
-        // A different employee must not replay a colleague's queued writes.
-        // Preserve the queue for a manager, while allowing new local work.
-        if(STATE.currentUser && !STATE.sharedStorageError) {
-          markSharedStorageFailure({code:'STORAGE_UNAVAILABLE'});
-          STATE.localSyncNeedsManager=true;
-          return typeof beginLocalWork==='function' && await beginLocalWork();
-        }
-        return false;
+      if(!STATE.currentUser)return false;
+      if(!saved || STATE.sharedSyncPending) {
+        // The inventory read already succeeded. A timeout, rate limit or
+        // conflicting upload cannot roll that read back to yesterday's lists.
+        // Preserve the exact outbox and its expected revisions for review.
+        const held=STATE.pendingRecordMutation || pending;
+        return applyReadStateWithHeldSync(remote,readLocalDemoStateBackup() || backup,held,{
+          code:STATE.lastRecordSyncFailureCode || STATE.sharedStorageError || 'STORAGE_UNAVAILABLE',
+          mutationId:held.mutationId,actor:recordSyncActor()});
       }
-      if(STATE.sharedSyncPending)return typeof beginLocalWork==='function' && await beginLocalWork();
       const acknowledged=applyRecordRows(remote,savedRows);
       STATE.recordRevisions=acknowledged.recordRevisions;
       applySharedDemoState(acknowledged);lastSharedStateSnapshot=getSharedDemoSnapshot();
@@ -378,6 +406,7 @@ async function performRecordLoad({refreshInventory=false,retryBlockedSync=false}
     lastSharedStateStamp = stamp.updatedAt;
     return true;
   } catch (error) {
+    if(!active())return false;
     reportAppWarning('Operational load failed',error);
     if(!STATE.sharedStorageError)markSharedStorageFailure(null);
     return typeof beginLocalWork==='function' ? await beginLocalWork({allowEmpty:true}) : loadLocalDemoStateBackup();
@@ -489,6 +518,7 @@ async function loadRecordTrace(sticker) {
   // Honor the provider's cooldown instead of retrying on every scanned device.
   // A verified session with secured inventory can continue locally meanwhile.
   if(appRetryAfter>Date.now()) {
+    if(typeof canWorkLocally==='function' && canWorkLocally())return true;
     if(!STATE.sharedStorageError)markSharedStorageFailure({code:'STORAGE_RATE_LIMITED'});
     return typeof beginLocalWork==='function' && await beginLocalWork();
   }

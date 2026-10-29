@@ -3,8 +3,8 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const {loadAppSandbox}=require('./app-sandbox.cjs');
 const run=(app,code)=>vm.runInContext(code,app);
-async function fixture() {
-  const app=loadAppSandbox({gzip:true,sessionStorage:{remarktServerSessionV1:'synthetic-verified-session'}});
+async function fixture(options={}) {
+  const app=loadAppSandbox({gzip:true,sessionStorage:{remarktServerSessionV1:'synthetic-verified-session'},...options});
   app.URLSearchParams=URLSearchParams;
   run(app,`STATE.currentUser=normalizeStoredUser({id:'worker',naam:'Worker',rol:'Grader',passwordHash:'server-managed',laptopAccess:'grade',mustChangePassword:false});
     USERS.splice(0,USERS.length,STATE.currentUser);STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='office-qa';STATE.currentScreen='scan';
@@ -290,4 +290,129 @@ test('legacy recovery copies without a local save clock keep their original upgr
     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
   const reopened=loadAppSandbox({indexedDB,localStorage:{remarktDemoStateBackupV1:JSON.stringify({users:[],history:[{id:'newer-legacy'}],updatedAt:'2026-01-01T11:00:00Z'})}});
   await reopened.loadDurableBackup();assert.equal(reopened.readLocalDemoStateBackup().history[0].id,'newer-legacy');
+});
+
+test('a full localStorage account cache cannot roll back a successful live inventory read',async()=>{
+  const {IDBFactory}=await import('fake-indexeddb');
+  const app=await fixture({indexedDB:new IDBFactory()}),work=remoteWork(app);
+  work.users[0].naam='Updated worker';
+  app.localStorage.setItem=()=>{throw Object.assign(Error('Browser storage quota exceeded'),{name:'QuotaExceededError'});};
+  app.fetch=async url=>new Response(JSON.stringify(url.includes('?meta=1')
+    ?{workspaceId:'office-qa',storageRevision:6,updatedAt:work.updatedAt}
+    :url.includes('?trace=')?{records:[]}:work));
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+  assert.equal(run(app,'STATE.sharedStorageError'),null);
+  assert.equal(run(app,'STATE.currentUser.naam'),'Updated worker');
+  await app.loadDurableBackup();assert.equal(app.readLocalDemoStateBackup().storageRevision,6);
+  await app.submitLaptopCode('LATEST-200');assert.equal(run(app,'STATE.currentScreen'),'laptop_info');
+});
+
+test('a timed-out queued upload cannot replace a fresh work list with the old workstation copy',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app),fetch=app.fetch;
+  app.fetch=(url,options)=>options?.method==='POST'?Promise.reject(Error('Upload timeout')):fetch(url,options);
+  const id=run(app,'STATE.pendingRecordMutation.mutationId');
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+  assert.equal(app.readLocalDemoStateBackup().storageRevision,6);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId,id);
+  assert.equal(run(app,'STATE.history[0].id'),'held-foreign');
+  assert.equal(app.hasRecordSyncReview(),true);
+});
+
+test('refresh repairs inventory without uploading or discarding work queued by other employees',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app);
+  run(app,"STATE.sharedStorageError='STORAGE_UNAVAILABLE';STATE.offlineWork=true;");
+  const id=run(app,'STATE.pendingRecordMutation.mutationId');
+  await app.refreshCurrentPage();
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+  assert.equal(calls.filter(row=>row.method==='POST').length,0);
+  assert.equal(calls.filter(row=>row.url.includes('?work=1')).length,1);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId,id);
+  assert.match(run(app,'STATE.appMessage.text'),/Work lists are up to date/);
+});
+
+test('forced inventory repair waits for a running delta read and still performs the requested full read',async()=>{
+  const app=await fixture(),work=remoteWork(app),calls=[];let release;
+  const gate=new Promise(resolve=>{release=resolve;});let held=false;
+  app.fetch=async url=>{
+    calls.push(url);
+    if(url.includes('?meta=1'))return new Response(JSON.stringify({workspaceId:'office-qa',storageRevision:6,updatedAt:work.updatedAt}));
+    if(url.includes('?since=')){if(!held){held=true;await gate;}return new Response(JSON.stringify({records:[],next:null}));}
+    if(url.includes('?work=1'))return new Response(JSON.stringify(work));
+    throw Error('Unexpected '+url);
+  };
+  const background=app.loadRecordState();
+  while(!held)await new Promise(resolve=>setImmediate(resolve));
+  const repair=app.refreshMissingScanInventory();release();await Promise.all([background,repair]);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+  assert.equal(calls.filter(url=>url.includes('?work=1')).length,1);
+});
+
+test('a queued upload conflict preserves fresh inventory and the original conflicting revision',async()=>{
+  const app=await fixtureWithHeldWork(),{work}=connectHeldWork(app),fetch=app.fetch;
+  const original=JSON.stringify(app.readLocalDemoStateBackup()._pendingRecordMutation);
+  app.fetch=(url,options)=>options?.method==='POST'
+    ?Promise.resolve(new Response(JSON.stringify({code:'STORAGE_RECORD_CONFLICT'}),{status:409})):fetch(url,options);
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+  assert.equal(JSON.stringify(app.readLocalDemoStateBackup()._pendingRecordMutation),original);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordSyncFailure.code,'STORAGE_RECORD_CONFLICT');
+  assert.equal(app.hasRecordSyncReview(),true);
+});
+
+test('an unavailable upload does not place healthy inventory and trace reads on a write cooldown',async()=>{
+  const app=await fixtureWithHeldWork();connectHeldWork(app);const fetch=app.fetch;
+  app.fetch=(url,options)=>options?.method==='POST'
+    ?Promise.resolve(new Response(JSON.stringify({code:'STORAGE_UNAVAILABLE'}),{status:503,headers:{'Retry-After':'60'}})):fetch(url,options);
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+  assert.equal(run(app,'appRetryAfter'),0);assert.ok(run(app,'appWriteRetryAfter')>Date.now());
+  await app.submitLaptopCode('LATEST-200');assert.equal(run(app,'STATE.currentScreen'),'laptop_info');
+});
+
+test('browsers without compression APIs request a supported plain work list',async()=>{
+  const app=await fixture({gzip:false}),work=remoteWork(app);
+  const gzip=require('node:zlib').gzipSync(JSON.stringify(work)).toString('base64');
+  app.fetch=async url=>new Response(JSON.stringify(url.includes('?meta=1')
+    ?{workspaceId:'office-qa',storageRevision:6,updatedAt:work.updatedAt}:url.includes('raw=1')?work:{gzip}));
+  assert.equal(await app.loadRecordState({refreshInventory:true,readOnly:true}),true);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+});
+
+test('late inventory and unauthorized responses from a previous login cannot replace or sign out the next employee',async()=>{
+  for(const status of [200,401]) {
+    const app=await fixture(),work=remoteWork(app);let release;
+    const gate=new Promise(resolve=>{release=resolve;});let waiting=false;
+    app.fetch=async url=>{
+      if(url.includes('?meta=1'))return new Response(JSON.stringify({workspaceId:'office-qa',storageRevision:6,updatedAt:work.updatedAt}));
+      waiting=true;await gate;return new Response(JSON.stringify(status===401?{code:'AUTH_REQUIRED'}:work),{status});
+    };
+    const oldRead=app.loadRecordState({refreshInventory:true});
+    while(!waiting)await new Promise(resolve=>setImmediate(resolve));
+    run(app,"STATE.currentUser={...STATE.currentUser,id:'next-worker'};setLiveSessionToken('next-verified-session');");
+    release();assert.equal(await oldRead,false);
+    assert.equal(run(app,'STATE.currentUser.id'),'next-worker');assert.equal(app.liveSessionToken(),'next-verified-session');
+    assert.equal(app.getLaptopBySticker('LATEST-200'),null);assert.equal(app.readLocalDemoStateBackup().storageRevision,5);
+  }
+});
+
+test('a partially acknowledged replay keeps the new failed mutation rather than restoring its acknowledged predecessor',async()=>{
+  const app=await fixtureWithHeldWork();connectHeldWork(app);const fetch=app.fetch;
+  const original=app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId;
+  run(app,"STATE.history.push({id:'after-sealed-queue',sticker:'OLD-100',grade:'A',user_id:'worker'});");
+  await app.saveLocalDemoStateBackup();let posts=0;
+  app.fetch=async(url,options)=>{
+    if(options?.method!=='POST')return fetch(url,options);
+    const envelope=JSON.parse(options.body);
+    const mutation=envelope.gzip?JSON.parse(require('node:zlib').gunzipSync(Buffer.from(envelope.gzip,'base64'))):envelope;
+    if(++posts===1)return new Response(JSON.stringify({ok:true,recordRevisions:Object.fromEntries(mutation.operations.map(op=>[JSON.stringify([op.collection,op.id]),10]))}));
+    return new Response(JSON.stringify({code:'AUTH_FORBIDDEN'}),{status:403});
+  };
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);assert.equal(posts,2);
+  const backup=app.readLocalDemoStateBackup(),held=backup._pendingRecordMutation;
+  assert.notEqual(held.mutationId,original);
+  assert.ok(held.operations.some(op=>op.collection==='history'&&op.id==='after-sealed-queue'));
+  assert.ok(!held.operations.some(op=>op.collection==='history'&&op.id==='held-foreign'));
+  assert.equal(backup._pendingRecordSyncFailure.mutationId,held.mutationId);
+  assert.equal(backup.history.length,2);assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
 });

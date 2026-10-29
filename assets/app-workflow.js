@@ -801,7 +801,7 @@ async function refreshMissingScanInventory() {
   if(identity===scanInventoryRefreshIdentity && scanInventoryRefreshAfter>Date.now())return false;
   scanInventoryRefreshIdentity=identity;
   scanInventoryRefreshAfter=Date.now()+30000;
-  scanInventoryRefresh=loadRecordState({refreshInventory:true});
+  scanInventoryRefresh=loadRecordState({refreshInventory:true,readOnly:true});
   try{return await scanInventoryRefresh;}finally{scanInventoryRefresh=null;}
 }
 function updateLaptopCodeResults(value) {
@@ -844,7 +844,7 @@ async function submitLaptopCode(value) {
   // Even a unique PARTIAL result requires an explicit click. Enter twice must
   // never turn a suffix into an unintended print or grading selection.
   updateLaptopCodeResults(value);
-  if(!matches.total && STATE.sharedStorageError) {
+  if(!matches.total && STATE.sharedStorageError && !hasRecordSyncReview()) {
     setAppMessage('This code is not in the work list saved on this computer. The connection is unavailable, so the latest batch could not be checked. Keep working with available devices or ask a manager to restore the latest work list.', 'warning');
     render();
   }
@@ -1166,9 +1166,10 @@ async function handleAction(action, el) {
   }
   if (action === 'retry_storage') {
     if(typeof appRetryAfter!=='undefined')appRetryAfter=0;
+    if(typeof appWriteRetryAfter!=='undefined')appWriteRetryAfter=0;
     if (!STATE.currentUser) await refreshSharedUsers();
     else {
-      const loaded=await loadSharedDemoState({retryBlockedSync:true});
+      const loaded=await loadSharedDemoState({refreshInventory:true,retryBlockedSync:true});
       if(loaded && (!STATE.sharedStorageError || canWorkLocally()) && STATE.loginLoadPending && STATE.currentUser) {
         STATE.loginLoadPending=false;
         STATE.currentScreen=STATE.currentUser.mustChangePassword?'password_change':'home';
@@ -1177,6 +1178,9 @@ async function handleAction(action, el) {
     }
     render();
     return;
+  }
+  if(action==='reload_work_lists') {
+    await refreshCurrentPage();return;
   }
   if(action==='restore_work_backup') {
     if(!isAdminUser() || !canWorkLocally())return;
@@ -1794,7 +1798,8 @@ async function performPageRefresh() {
   const screen = STATE.currentScreen;
   const keepInput = ['manual', 'monitor_manual', 'accounts', 'import', 'password_change'].includes(screen) || liveRenderWouldDisruptInput();
   try {
-    if (STATE.sharedStorageError || STATE.offlineWork) await loadSharedDemoState();
+    if (STATE.storageFormat===3) await loadSharedDemoState({refreshInventory:true,readOnly:true});
+    else if (STATE.sharedStorageError || STATE.offlineWork) await loadSharedDemoState();
     else await syncSharedStateIfChanged({ loadFull: true });
     if (!STATE.currentUser) { render(); return false; }
     if (typeof appRetryAfter !== 'undefined' && appRetryAfter > Date.now()) {

@@ -154,6 +154,7 @@ function renderLocalWorkStatus() {
     <button class="storage-status-close" data-action="dismiss_local_work_notice" type="button" aria-label="Close" title="Close">${uiIcon('close')}</button>
     <span>${review?'The server is reachable. Earlier work needs a manager check; new work is secured on this computer.':'Saved on this computer; synchronization is pending.'}</span>
     <button class="btn btn-secondary" data-action="download_local_backup" type="button">Download local recovery copy</button>
+    <button class="btn btn-secondary" data-action="reload_work_lists" type="button">Reload work lists</button>
     <button class="btn btn-secondary" data-action="retry_storage" type="button">Retry connection</button>
     ${isAdminUser()?'<button class="btn btn-secondary" data-action="restore_work_backup" type="button">Restore work lists</button><details><summary>Local work instructions</summary><p>Do not clear browser data. Use separate devices or batches per workstation to avoid duplicate work.</p><p>Offline sign-in is available only after a successful personal-password sign-in on this computer, for up to seven days. Account changes require the server.</p></details>':''}
     ${STATE.localSyncNeedsManager?'<p>Ask a manager to synchronize queued work from different employees on this computer.</p>':''}
