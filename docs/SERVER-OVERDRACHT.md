@@ -16,6 +16,14 @@ Opgesteld op 29 oktober 2026. Uitvoerplan voor de developer; de server- en datab
 | Browseropslag | IndexedDB-herstelkopie/wachtrij en aanvullende localStorage-cache |
 | Testbaseline | 395 tests geslaagd vóór deze documentatie |
 
+## Uitgevoerde overdracht en openstaande koppeling
+
+- GitHub-transfer naar `Terabyte-BV/Grade-app` afgerond. Repository-ID `1281083836` is gelijk gebleven; dit is dezelfde repository met bestaande geschiedenis. De oude TimBeek-URL verwijst door.
+- Overdrachtsdocumentatie op `main` gepubliceerd. Lokale `origin` en de upstream van `main` wijzen nu naar de bedrijfsrepository. De eerdere remote naar het andere project Ingangscontrole is alleen lokaal hernoemd naar `ingangscontrole`; die andere repository is niet gewijzigd.
+- De bestaande Vercel-productie met build `20261029-workstation-repair-v4` is na de transfer via het vaste adres gecontroleerd: HTTP 200. Database en server zijn nog niet verhuisd.
+- **Openstaand:** Vercel weigert de nieuwe Git-koppeling. De reconnectpoging heeft geen actieve Git-link op het bestaande Vercel-project achtergelaten; de reeds gebouwde live deployment blijft beschikbaar. Automatische updates vanuit de nieuwe repository zijn dus nog niet operationeel.
+- Laat een bevoegde organisatiebeheerder de toegang/installatie van de Vercel GitHub App voor `Terabyte-BV/Grade-app` controleren en vervolgens het bestaande project `re-markt/grade-app` onder Settings → Git koppelen. Maak hiervoor geen lege vervangende database of app aan. Controleer daarna een deployment voor de bedoelde commit. Deze toegangsactie is niet afgerond binnen de overdracht.
+
 De GitHub-transfer moet de bestaande repository en geschiedenis behouden. De repository was openbaar; deze opdracht wijzigt de zichtbaarheid niet. Wel in Git: code, actieve beelden, vendorbestanden, tests, schema's en scripts. Niet in Git: database-inhoud, medewerkers-/batchherstelbestanden, browserprofielen, echte `.env`-bestanden, privésleutels en back-ups. Die worden afzonderlijk beveiligd overgedragen.
 
 ## Hoe zit het met de database?
