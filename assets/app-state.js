@@ -2220,6 +2220,9 @@ async function loadDurableBackup() {
 
 function saveLocalDemoStateBackup(snapshot = getSharedDemoSnapshot()) {
   const previousBackup = readLocalDemoStateBackup();
+  if(snapshot.storageFormat===3 && STATE.pendingRecordMutation &&
+    previousBackup?._pendingRecordSyncFailure?.mutationId===STATE.pendingRecordMutation.mutationId && !snapshot._pendingRecordSyncFailure)
+    snapshot={...snapshot,_pendingRecordSyncFailure:previousBackup._pendingRecordSyncFailure};
   // Pre-print checks, detail reads and draft writes must not erase the sealed
   // outbox before its acknowledgement. Completed saves clear STATE first.
   if(snapshot.storageFormat===3 && STATE.sharedSyncPending && STATE.pendingRecordMutation && !snapshot._pendingRecordMutation) {
@@ -2822,8 +2825,8 @@ function sharedStateDeltaHasChanges(delta) {
   ].some(key => Array.isArray(delta[key]) && delta[key].length > 0);
 }
 
-async function loadSharedDemoState() {
-  if (STATE.serverAuth && STATE.storageFormat === 3) return loadRecordState();
+async function loadSharedDemoState(options = {}) {
+  if (STATE.serverAuth && STATE.storageFormat === 3) return loadRecordState(options);
   if (!canUseSharedDemoState()) return loadLocalDemoStateBackup();
   await loadDurableBackup();
   const localState = readLocalDemoStateBackup();

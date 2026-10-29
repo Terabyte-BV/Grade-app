@@ -1570,7 +1570,7 @@ function formatLiveRelativeTime(value) {
 async function refreshAnalyticsServerStats() {
   const container = document.getElementById('manager-live-stats');
   if (!container) return;
-  const locallyWorking=typeof canWorkLocally==='function' && canWorkLocally();
+  const locallyWorking=typeof useLocalRecordReads==='function' && useLocalRecordReads();
   const coolingDown=STATE.storageFormat===3 && typeof appRetryAfter!=='undefined' && appRetryAfter>Date.now();
   if (locallyWorking || coolingDown || (typeof canUseSharedDemoState === 'function' && !canUseSharedDemoState())) {
     container.setAttribute('data-state', 'offline');

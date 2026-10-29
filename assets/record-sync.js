@@ -234,6 +234,7 @@ function applyLoadedRecordRows(rows) {
   const before=new Map(clientSnapshotRecords(baseline).map(row=>[recordClientIdentity(row.collection,row.id),payload(row)]));
   const dirty=new Set(clientSnapshotRecords(current).filter(row=>payload(row)!==before.get(recordClientIdentity(row.collection,row.id)))
     .map(row=>recordClientIdentity(row.collection,row.id)));
+  for(const op of STATE.pendingRecordMutation?.operations || [])dirty.add(recordClientIdentity(op.collection,op.id));
   const cleanRows=rows.filter(row=>!dirty.has(recordClientIdentity(row.collection,row.id)));
   const state=applyRecordRows(current,cleanRows);
   lastSharedStateSnapshot=applyRecordRows(baseline,cleanRows);
@@ -241,6 +242,7 @@ function applyLoadedRecordRows(rows) {
   return state;
 }
 async function prepareRecordRead() {
+  if(hasRecordSyncReview())return true;
   if(typeof canWorkLocally==='function' && canWorkLocally())return true;
   if(STATE.pendingRecordMutation || STATE.sharedSyncPending) return await saveSharedDemoState();
   return !STATE.sharedStorageError;
@@ -249,7 +251,7 @@ async function prepareRecordRead() {
 let recordHistoryTicket=0;
 async function loadRecordHistory(pageNumber=1) {
   if(STATE.storageFormat!==3)return true;
-  if(typeof canWorkLocally==='function' && canWorkLocally()) {
+  if(useLocalRecordReads()) {
     const query=String(STATE.historySearch||'').toLowerCase();
     const rows=STATE.history.filter(row=>(isAdminUser() || row.user_id===STATE.currentUser.id) &&
       (!query || JSON.stringify(row).toLowerCase().includes(query))).slice().reverse();
@@ -284,7 +286,7 @@ async function loadRecordState(options = {}) {
   recordLoadRequest=performRecordLoad(options);
   try{return await recordLoadRequest;}finally{recordLoadRequest=null;}
 }
-async function performRecordLoad({refreshInventory=false} = {}) {
+async function performRecordLoad({refreshInventory=false,retryBlockedSync=false} = {}) {
   await loadDurableBackup();
   const backup = readLocalDemoStateBackup();
   if (!liveSessionToken()) return typeof canWorkLocally==='function' && canWorkLocally();
@@ -338,8 +340,22 @@ async function performRecordLoad({refreshInventory=false} = {}) {
       const authenticatedUser=STATE.currentUser;
       applySharedDemoState(backup);STATE.currentUser=authenticatedUser;saveSessionUser(authenticatedUser);
       lastSharedStateSnapshot = backup._recordPendingBase || backup;
+      const failure=backup._pendingRecordSyncFailure;
+      if(!retryBlockedSync && failure?.mutationId===pending.mutationId && failure.actor===recordSyncActor())
+        return applyReadStateWithHeldSync(remote,backup,pending,failure);
       const savedRows=[];
-      if(!await saveRecordState(backup, pending, backup._recordMutationOptions || {}, savedRows)) {
+      const saved=await saveRecordState(backup, pending, backup._recordMutationOptions || {}, savedRows);
+      if(STATE.lastRecordSyncFailureCode==='AUTH_PASSWORD_CHANGE_REQUIRED') {
+        STATE.currentUser.mustChangePassword=true;
+        const cachedUser=USERS.find(user=>user.id===STATE.currentUser.id);
+        if(cachedUser)cachedUser.mustChangePassword=true;
+        forgetOfflineLogin(STATE.currentUser.id);saveUsers();saveSessionUser(STATE.currentUser);
+        STATE.offlineWork=false;STATE.sharedStorageError=null;STATE.currentScreen='password_change';
+        return false;
+      }
+      if(STATE.lastRecordSyncFailureCode==='AUTH_FORBIDDEN')
+        return applyReadStateWithHeldSync(remote,backup,pending,{code:'AUTH_FORBIDDEN',mutationId:pending.mutationId,actor:recordSyncActor()});
+      if(!saved) {
         // A different employee must not replay a colleague's queued writes.
         // Preserve the queue for a manager, while allowing new local work.
         if(STATE.currentUser && !STATE.sharedStorageError) {
@@ -368,6 +384,33 @@ async function performRecordLoad({refreshInventory=false} = {}) {
   }
 }
 
+function recordSyncActor() {
+  const user=STATE.currentUser || {};
+  return JSON.stringify([user.id,user.rol,user.laptopAccess,user.monitorAccess,user.mustChangePassword,user.passwordUpdatedAt]);
+}
+async function applyReadStateWithHeldSync(remote,backup,pending,failure) {
+  // A rejected write is not a failed read. Keep the original sealed queue and
+  // every dirty entity, while accepting fresh inventory and its read checkpoint.
+  const rows=clientSnapshotRecords(remote).map(row=>({...row,
+    revision:Number(remote.recordRevisions?.[recordClientIdentity(row.collection,row.id)] || 0)}));
+  const merged=applyLoadedRecordRows(rows);
+  merged.users=remote.users;
+  lastSharedStateSnapshot.users=remote.users;
+  merged.storageRevision=remote.storageRevision;merged.updatedAt=remote.updatedAt;
+  merged._workInventoryComplete=remote._workInventoryComplete;
+  applySharedDemoState(merged);
+  STATE.sharedSyncPending=true;STATE.pendingRecordMutation=pending;
+  STATE.sharedStorageError='STORAGE_SYNC_REVIEW_REQUIRED';STATE.localSyncNeedsManager=true;
+  STATE.offlineWork=true;STATE.localRecoveryAvailable=true;
+  STATE.offlineManualOnly=remote._workInventoryComplete===false;
+  if(!await saveLocalDemoStateBackup({...merged,_pendingRecordMutation:pending,
+    _recordPendingBase:lastSharedStateSnapshot,_recordMutationOptions:backup._recordMutationOptions || {},
+    _pendingRecordSyncFailure:failure,_clientSyncPending:true}))return false;
+  lastSharedStateStamp=remote.updatedAt;
+  setAppMessage('Work lists are up to date. Synchronization of earlier work requires a manager. You can continue working.','warning');
+  return true;
+}
+
 let recordProjectionRequest=null;
 const recordInsightsCache=new Map();
 const recordInsightsRequests=new Map();
@@ -390,7 +433,7 @@ function getCachedRecordInsights(filters=getAnalyticsFilters()) {
 }
 async function loadRecordInsights(filters=getAnalyticsFilters(), forBatch=false) {
   if(STATE.storageFormat!==3)return true;
-  if(typeof canWorkLocally==='function' && canWorkLocally())return false;
+  if(useLocalRecordReads())return false;
   filters={...filters};
   const key=recordInsightsKey(filters);
   const cached=getCachedRecordInsights(filters);
@@ -423,7 +466,7 @@ async function loadRecordBatchInsights(id) {
   if(data){STATE.recordBatchInsights={...(STATE.recordBatchInsights||{}),[id]:data};return true;}return false;
 }
 async function ensureRecordProjections() {
-  if(typeof canWorkLocally==='function' && canWorkLocally())return true;
+  if(useLocalRecordReads())return true;
   if(STATE.storageFormat!==3 || STATE.recordProjectionsComplete) return true;
   if(!await prepareRecordRead())return false;
   if(recordProjectionRequest) return recordProjectionRequest;
@@ -441,7 +484,7 @@ async function ensureRecordProjections() {
 }
 const recordTraceCache=new Map();
 async function loadRecordTrace(sticker) {
-  if(typeof canWorkLocally==='function' && canWorkLocally())return true;
+  if(useLocalRecordReads())return true;
   if(STATE.storageFormat!==3) return true;
   // Honor the provider's cooldown instead of retrying on every scanned device.
   // A verified session with secured inventory can continue locally meanwhile.
@@ -468,6 +511,7 @@ async function loadRecordTrace(sticker) {
 }
 async function saveRecordState(snapshot, mutation, options={}, savedRows=[]) {
   if (!mutation.operations.length) return true;
+  STATE.lastRecordSyncFailureCode=null;
   STATE.pendingRecordMutation = mutation; STATE.sharedSyncPending = true;
   const secured=await saveLocalDemoStateBackup({ ...snapshot, storageFormat: 3, recordRevisions: STATE.recordRevisions,
     _pendingRecordMutation: mutation, _recordPendingBase:lastSharedStateSnapshot,
@@ -481,8 +525,21 @@ async function saveRecordState(snapshot, mutation, options={}, savedRows=[]) {
       body: await encodeSharedDemoStateBody(mutation) });
   }catch {markSharedStorageFailure(null);}
   if(!response?.ok) {
+    if(response?.status===403 && typeof response.clone==='function') {
+      try { const rejected=await response.clone().json();
+        if(['AUTH_FORBIDDEN','AUTH_PASSWORD_CHANGE_REQUIRED'].includes(rejected.code))STATE.lastRecordSyncFailureCode=rejected.code;
+      }catch { /* Only a verified, explicit permission failure can be held for review. */ }
+    }
     if(response)await readStorageFailure(response);
     if(response?.status===429)markSharedStorageFailure({code:'STORAGE_RATE_LIMITED'});
+    if(!accountMutation && STATE.lastRecordSyncFailureCode==='AUTH_FORBIDDEN') {
+      STATE.sharedStorageError='STORAGE_SYNC_REVIEW_REQUIRED';STATE.localSyncNeedsManager=true;
+      STATE.offlineWork=true;STATE.localRecoveryAvailable=true;
+      const secured=await saveLocalDemoStateBackup({...snapshot,storageFormat:3,recordRevisions:STATE.recordRevisions,
+        _pendingRecordMutation:mutation,_recordPendingBase:lastSharedStateSnapshot,_recordMutationOptions:options,
+        _pendingRecordSyncFailure:{code:'AUTH_FORBIDDEN',mutationId:mutation.mutationId,actor:recordSyncActor()},_clientSyncPending:true});
+      return secured;
+    }
     if(!accountMutation && typeof isContinuityFailure==='function' && isContinuityFailure(STATE.sharedStorageError)) {
       STATE.offlineWork=true;STATE.localRecoveryAvailable=true;return true;
     }
@@ -514,7 +571,7 @@ async function saveRecordState(snapshot, mutation, options={}, savedRows=[]) {
   // expectedRevision would be an unnecessary second mutation.
   next.operations=next.operations.filter(op=>!mutation.operations.some(old=>old.deleted && old.collection===op.collection && old.id===op.id));
   if(next.operations.length) return saveRecordState(snapshot,next,options,savedRows);
-  const {_pendingRecordMutation,_recordPendingBase,_recordMutationOptions,_clientSyncPending,...completedSnapshot}=snapshot;
+  const {_pendingRecordMutation,_recordPendingBase,_recordMutationOptions,_pendingRecordSyncFailure,_clientSyncPending,...completedSnapshot}=snapshot;
   await saveLocalDemoStateBackup({ ...completedSnapshot, recordRevisions: STATE.recordRevisions, storageFormat: 3,
     _recordProjectionsComplete: Boolean(readLocalDemoStateBackup()?._recordProjectionsComplete),
     storageRevision: readLocalDemoStateBackup()?.storageRevision || 0 });

@@ -1168,7 +1168,7 @@ async function handleAction(action, el) {
     if(typeof appRetryAfter!=='undefined')appRetryAfter=0;
     if (!STATE.currentUser) await refreshSharedUsers();
     else {
-      const loaded=await loadSharedDemoState();
+      const loaded=await loadSharedDemoState({retryBlockedSync:true});
       if(loaded && (!STATE.sharedStorageError || canWorkLocally()) && STATE.loginLoadPending && STATE.currentUser) {
         STATE.loginLoadPending=false;
         STATE.currentScreen=STATE.currentUser.mustChangePassword?'password_change':'home';
@@ -1800,7 +1800,9 @@ async function performPageRefresh() {
     if (typeof appRetryAfter !== 'undefined' && appRetryAfter > Date.now()) {
       if (!keepInput || STATE.currentScreen !== screen) render(); return false;
     }
-    const message = STATE.sharedStorageError
+    const message = hasRecordSyncReview()
+      ? 'Work lists are up to date. Synchronization of earlier work requires a manager. You can continue working.'
+      : STATE.sharedStorageError
       ? canWorkLocally() ? 'Connection unavailable. Your session and local work are kept.' : 'Refresh failed. Your session and unsynchronized work are kept. Retry the connection.'
       : 'Data refreshed. You are still signed in.';
     setAppMessage(message, STATE.sharedStorageError ? 'warning' : 'success');

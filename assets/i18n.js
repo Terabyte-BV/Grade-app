@@ -6,6 +6,9 @@ const LANGUAGE_STORAGE_KEY = 'remarktLanguagePreferenceV1';
 const SUPPORTED_LANGUAGES = new Set(['nl', 'en']);
 
 const NL_COPY = {
+  'Synchronization needs review': 'Synchronisatie vraagt controle',
+  'The server is reachable. Earlier work needs a manager check; new work is secured on this computer.': 'De server is bereikbaar. Eerder werk vraagt controle door een manager; nieuw werk wordt op deze computer veiliggesteld.',
+  'Work lists are up to date. Synchronization of earlier work requires a manager. You can continue working.': 'De werklijsten zijn bijgewerkt. Synchronisatie van eerder werk vraagt controle door een manager. Je kunt verder werken.',
   'Work lists restored locally. Existing work and accounts were kept; work from the other computer was not imported.': 'Werklijsten lokaal hersteld. Bestaand werk en accounts zijn behouden; beoordelingen van de andere computer zijn niet overgenomen.',
   'Use a work backup from the same workspace. Your existing work was kept.': 'Gebruik een werkback-up van dezelfde werkomgeving. Je bestaande werk is behouden.',
   'This code is not in the work list saved on this computer. The connection is unavailable, so the latest batch could not be checked. Keep working with available devices or ask a manager to restore the latest work list.': 'Deze code staat niet in de werklijst op deze computer. Door de verbindingsstoring kon de nieuwste batch niet worden gecontroleerd. Werk verder met beschikbare apparaten of vraag een manager de nieuwste werklijst te herstellen.',

@@ -164,3 +164,103 @@ test('failed durable work-list import rolls back the inventory and does not eras
   assert.equal(JSON.stringify(app.readLocalDemoStateBackup()),before);
   assert.equal(app.getLaptopBySticker('LATEST-200'),null);assert.equal(app.getAllLaptops().length,1);
 });
+
+async function fixtureWithHeldWork() {
+  const app=await fixture();
+  run(app,`STATE.history.push({id:'held-foreign',sticker:'OLD-100',grade:'B',user_id:'other-worker'});
+    STATE.pendingRecordMutation=createRecordMutation(getSharedDemoSnapshot(),lastSharedStateSnapshot);STATE.sharedSyncPending=true;`);
+  await app.saveLocalDemoStateBackup();
+  return app;
+}
+function connectHeldWork(app) {
+  const work=remoteWork(app);work.history=[];work._pendingRecordMutation=null;
+  const calls=[];
+  app.fetch=async(url,options={})=>{
+    calls.push({url,method:options.method||'GET'});
+    if(options.method==='POST')return new Response(JSON.stringify({ok:false,code:'AUTH_FORBIDDEN'}),{status:403});
+    if(url.includes('?meta=1'))return new Response(JSON.stringify({workspaceId:'office-qa',storageRevision:6,updatedAt:work.updatedAt}));
+    if(url.includes('?work=1'))return new Response(JSON.stringify(work));
+    if(url.includes('?since='))return new Response(JSON.stringify({recordDelta:true,records:[],next:null}));
+    if(url.includes('?trace='))return new Response(JSON.stringify({records:[]}));
+    throw Error('Unexpected request '+url);
+  };
+  return {work,calls};
+}
+
+test('a rejected queued write cannot discard successfully read new inventory or masquerade as no connection',async()=>{
+  const app=await fixtureWithHeldWork();const id=run(app,'STATE.pendingRecordMutation.mutationId');
+  const {calls}=connectHeldWork(app);
+  assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');assert.equal(app.hasRecordSyncReview(),true);
+  assert.equal(app.canWorkLocally(),true);assert.equal(app.readLocalDemoStateBackup().storageRevision,6);
+  assert.equal(run(app,'STATE.pendingRecordMutation.mutationId'),id);assert.equal(run(app,'STATE.history[0].id'),'held-foreign');
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordSyncFailure.code,'AUTH_FORBIDDEN');
+  assert.match(app.renderLocalWorkStatus(),/Synchronization needs review|server is reachable/);
+  assert.doesNotMatch(run(app,'STATE.appMessage.text'),/Connection unavailable/);
+  const beforePosts=calls.filter(row=>row.method==='POST').length;
+  await app.submitLaptopCode('LATEST-200');assert.equal(run(app,'STATE.currentScreen'),'laptop_info');
+  assert.equal(calls.filter(row=>row.method==='POST').length,beforePosts,'A read must not retry the rejected write');
+});
+
+test('subsequent refreshes use the saved read checkpoint and do not resend a forbidden queue',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app);
+  await app.loadRecordState({refreshInventory:true});
+  await app.loadRecordState();await app.loadRecordState();
+  assert.equal(calls.filter(row=>row.url.includes('?work=1')).length,1);
+  assert.equal(calls.filter(row=>row.url.includes('?since=6')).length,2);
+  assert.equal(calls.filter(row=>row.method==='POST').length,1);
+  assert.equal(app.getLaptopBySticker('LATEST-200').model,'EliteBook');
+});
+
+test('new employee work stays secured alongside an unchanged held queue, including across a reload',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app);
+  await app.loadRecordState({refreshInventory:true});
+  const id=run(app,'STATE.pendingRecordMutation.mutationId');
+  run(app,"STATE.history.push({id:'new-own-work',sticker:'LATEST-200',grade:'A',user_id:'worker'});");
+  assert.equal(await app.saveSharedDemoState(),true);
+  const backup=app.readLocalDemoStateBackup();assert.equal(backup.history.length,2);
+  assert.equal(backup._pendingRecordMutation.mutationId,id);assert.equal(backup._pendingRecordSyncFailure.code,'AUTH_FORBIDDEN');
+  await app.loadRecordState();
+  assert.equal(run(app,'STATE.history.length'),2);assert.equal(run(app,'STATE.pendingRecordMutation.mutationId'),id);
+  assert.equal(calls.filter(row=>row.method==='POST').length,1);
+});
+
+test('explicit retry rechecks held synchronization without automatic permission changes',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app);
+  await app.loadRecordState({refreshInventory:true});
+  await app.handleAction('retry_storage',{});
+  assert.equal(calls.filter(row=>row.method==='POST').length,2);assert.equal(app.hasRecordSyncReview(),true);
+  assert.equal(run(app,'STATE.currentUser.rol'),'Grader');
+});
+
+test('server-reported password-change requirements are not treated as permission to continue',async()=>{
+  const app=await fixtureWithHeldWork();const {work}=connectHeldWork(app);
+  const fetch=app.fetch;app.fetch=(url,options)=>options?.method==='POST'
+    ? Promise.resolve(new Response(JSON.stringify({code:'AUTH_PASSWORD_CHANGE_REQUIRED'}),{status:403})) : fetch(url,options);
+  await app.loadRecordState({refreshInventory:true});assert.equal(app.hasRecordSyncReview(),false);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordSyncFailure,undefined);
+  assert.equal(app.canWorkLocally(),false);assert.equal(run(app,'STATE.currentScreen'),'password_change');
+});
+
+test('the first forbidden operational save is secured locally and immediately unblocks subsequent reads',async()=>{
+  const app=await fixtureWithHeldWork(),{calls}=connectHeldWork(app);
+  const id=run(app,'STATE.pendingRecordMutation.mutationId');
+  assert.equal(await app.saveSharedDemoState(),true);assert.equal(app.hasRecordSyncReview(),true);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId,id);
+  assert.equal(app.readLocalDemoStateBackup()._pendingRecordSyncFailure.code,'AUTH_FORBIDDEN');
+  await app.loadRecordTrace('OLD-100');
+  assert.equal(calls.filter(row=>row.method==='POST').length,1);
+  assert.ok(calls.some(row=>row.url.includes('?trace=')));
+});
+
+test('Manager Live remains readable while an earlier write is held for authorization review',async()=>{
+  const app=await fixtureWithHeldWork();connectHeldWork(app);await app.loadRecordState({refreshInventory:true});
+  run(app,"STATE.currentUser.rol='Manager';");
+  const container={state:null,html:'',classList:{toggle(){}},querySelector(){return null;},
+    setAttribute(key,value){if(key==='data-state')this.state=value;},set innerHTML(value){this.html=value;}};
+  const baseGet=app.document.getElementById;app.document.getElementById=id=>id==='manager-live-stats'?container:baseGet(id);
+  const calls=[];app.fetch=async(url,options={})=>{calls.push(url);assert.equal(options.method,undefined);return new Response(JSON.stringify({live:{today:3}}));};
+  await app.refreshAnalyticsServerStats();
+  assert.equal(container.state,'ready');assert.doesNotMatch(container.html,/database figures unavailable/);
+  assert.deepEqual(calls,['/api/stats']);assert.equal(app.hasRecordSyncReview(),true);
+});

@@ -372,6 +372,46 @@ test('employee login and manager password administration remain reliable on a sh
       const before=calls.length;await app.loadRecordTrace('NEWEST-QA-300');assert.equal(calls.length,before);
       unavailable=false;
     });
+    await t.test('a forbidden queue does not stop fresh inventory reads; employee work stays local until an authorized manager replays it',async()=>{
+      const account=staff[11],app=loadAppSandbox({gzip:true,indexedDB:new IDBFactory()});
+      app.URLSearchParams=URLSearchParams;app.account=account;app.token=issueSession(account,'login-qa');
+      vm.runInContext("STATE.currentUser=account;STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='login-qa';STATE.currentScreen='scan';setLiveSessionToken(token);",app);
+      const calls=[];
+      app.fetch=async(url,options={})=>{
+        const result={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(code){this.statusCode=code;return this;},json(data){this.data=data;}};
+        await directory({method:options.method||'GET',url,headers:{authorization:options.headers?.Authorization},body:options.body?JSON.parse(options.body):undefined},result);
+        calls.push({url,method:options.method||'GET',status:result.statusCode});
+        return new Response(JSON.stringify(result.data),{status:result.statusCode,headers:result.headers});
+      };
+      await app.loadRecordState();
+      vm.runInContext(`STATE.history.push({id:'held-for-owner',sticker:'NEWEST-QA-300',grade:'B',user_id:'staff-9'});
+        STATE.pendingRecordMutation=createRecordMutation(getSharedDemoSnapshot(),lastSharedStateSnapshot);STATE.sharedSyncPending=true;`,app);
+      assert.equal(await app.saveSharedDemoState(),true,'A rejected operational save is secured locally, not falsely acknowledged live');
+      assert.equal(app.hasRecordSyncReview(),true);
+      const originalMutation=vm.runInContext('STATE.pendingRecordMutation.mutationId',app);
+      await store.merge({mutationId:randomUUID(),operations:[
+        {collection:'batches',id:'sync-read',expectedRevision:0,payload:{id:'sync-read',nummer:'SYNC-READ',leverancier:'Synthetic'}},
+        {collection:'laptops',id:'["sync-read","SYNC-READ-400"]',batchId:'sync-read',expectedRevision:0,
+          payload:{sticker:'SYNC-READ-400',serial:'SYNC-SN',merk:'Dell',model:'QA',batchId:'sync-read',batchNummer:'SYNC-READ'}}
+      ]});
+      assert.equal(await app.loadRecordState({refreshInventory:true}),true);
+      assert.equal(app.hasRecordSyncReview(),true);assert.ok(app.getLaptopBySticker('SYNC-READ-400'));
+      assert.equal(calls.filter(row=>row.method==='POST'&&row.status===403).length,1);
+      assert.equal(await store.detail('history','held-for-owner'),null,'The forbidden write is not bypassed');
+      await app.loadRecordState();
+      assert.equal(calls.filter(row=>row.method==='POST').length,1,'Periodic reads must not resend the rejected queue');
+      await app.submitLaptopCode('SYNC-READ-400');assert.equal(vm.runInContext('STATE.currentScreen',app),'laptop_info');
+      vm.runInContext("STATE.history.push({id:'new-work-while-held',sticker:'SYNC-READ-400',grade:'A',user_id:'staff-11'});",app);
+      assert.equal(await app.saveSharedDemoState(),true);
+      assert.equal(app.readLocalDemoStateBackup()._pendingRecordMutation.mutationId,originalMutation);
+      assert.ok(app.readLocalDemoStateBackup().history.some(row=>row.id==='new-work-while-held'));
+      app.managerToken=managerToken;
+      vm.runInContext("STATE.currentUser=USERS.find(user=>user.id==='manager');setLiveSessionToken(managerToken);",app);
+      assert.equal(await app.loadRecordState(),true);
+      assert.equal(app.hasRecordSyncReview(),false);assert.equal(vm.runInContext('STATE.sharedSyncPending',app),false);
+      assert.equal((await store.detail('history','held-for-owner')).payload.user_id,'staff-9');
+      assert.equal((await store.detail('history','new-work-while-held')).payload.user_id,'staff-11');
+    });
     await t.test('refresh restores only a server-verified session without password or expiry extension',async()=>{
       const token=issueSession(staff[4],'login-qa');
       const restored=await request(undefined,token,'office',handler,'GET');
