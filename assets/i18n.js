@@ -6,6 +6,9 @@ const LANGUAGE_STORAGE_KEY = 'remarktLanguagePreferenceV1';
 const SUPPORTED_LANGUAGES = new Set(['nl', 'en']);
 
 const NL_COPY = {
+  'Work lists restored locally. Existing work and accounts were kept; work from the other computer was not imported.': 'Werklijsten lokaal hersteld. Bestaand werk en accounts zijn behouden; beoordelingen van de andere computer zijn niet overgenomen.',
+  'Use a work backup from the same workspace. Your existing work was kept.': 'Gebruik een werkback-up van dezelfde werkomgeving. Je bestaande werk is behouden.',
+  'This code is not in the work list saved on this computer. The connection is unavailable, so the latest batch could not be checked. Keep working with available devices or ask a manager to restore the latest work list.': 'Deze code staat niet in de werklijst op deze computer. Door de verbindingsstoring kon de nieuwste batch niet worden gecontroleerd. Werk verder met beschikbare apparaten of vraag een manager de nieuwste werklijst te herstellen.',
   'Complete missing specifications': 'Ontbrekende specificaties aanvullen',
   'Leave values you cannot determine empty.': 'Laat gegevens die je niet kunt vaststellen leeg.',
   'Enter a checked specification, or choose Not determined to continue.': 'Vul een gecontroleerde specificatie in, of kies Niet vast te stellen om door te gaan.',

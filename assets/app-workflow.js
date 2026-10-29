@@ -786,6 +786,24 @@ function openImagePreviewFromElement(element) {
 
 let scanSearchTimer = null;
 let laptopCodeSearchTimer = null;
+let scanInventoryRefresh = null;
+let scanInventoryRefreshIdentity = '';
+let scanInventoryRefreshAfter = 0;
+async function refreshMissingScanInventory() {
+  if(STATE.storageFormat!==3 || !STATE.serverAuth || !STATE.currentUser || !liveSessionToken())return false;
+  const identity=JSON.stringify([STATE.sharedWorkspaceId,STATE.currentUser.id]);
+  if(identity===scanInventoryRefreshIdentity && scanInventoryRefresh)return scanInventoryRefresh;
+  if(appRetryAfter>Date.now()) {
+    if(!STATE.sharedStorageError)markSharedStorageFailure({code:'STORAGE_RATE_LIMITED'});
+    if(typeof beginLocalWork==='function')await beginLocalWork();
+    return false;
+  }
+  if(identity===scanInventoryRefreshIdentity && scanInventoryRefreshAfter>Date.now())return false;
+  scanInventoryRefreshIdentity=identity;
+  scanInventoryRefreshAfter=Date.now()+30000;
+  scanInventoryRefresh=loadRecordState({refreshInventory:true});
+  try{return await scanInventoryRefresh;}finally{scanInventoryRefresh=null;}
+}
 function updateLaptopCodeResults(value) {
   if (!['scan', 'sticker_scan'].includes(STATE.currentScreen)) return;
   STATE.scanCodeQuery = String(value || '').trim();
@@ -806,8 +824,17 @@ function scheduleLaptopCodeSearch(value) {
 }
 async function submitLaptopCode(value) {
   clearTimeout(laptopCodeSearchTimer);
-  if (!['scan', 'sticker_scan'].includes(STATE.currentScreen) || STATE.laptopReprintPrompt || STATE.laptopScanBusy || STATE.laptopReprintBusy) return false;
-  const matches = getLaptopCodeMatches(value);
+  if (!['scan', 'sticker_scan'].includes(STATE.currentScreen) || STATE.laptopReprintPrompt || STATE.laptopScanBusy || STATE.laptopReprintBusy || STATE.scanLookupBusy) return false;
+  let matches = getLaptopCodeMatches(value);
+  const screen=STATE.currentScreen, userId=STATE.currentUser?.id;
+  STATE.scanCodeQuery=String(value || '').trim();
+  if(!matches.total && matches.query.length>=3 && matches.query.length<=256) {
+    STATE.scanLookupBusy=true;
+    try { await refreshMissingScanInventory(); }
+    finally { STATE.scanLookupBusy=false; }
+    if(STATE.currentScreen!==screen || STATE.currentUser?.id!==userId || STATE.scanCodeQuery!==String(value || '').trim())return false;
+    matches=getLaptopCodeMatches(value);
+  }
   if (matches.exact.length === 1 && matches.total === 1) {
     STATE.scanCodeQuery = '';
     const sticker = matches.exact[0].sticker;
@@ -817,6 +844,10 @@ async function submitLaptopCode(value) {
   // Even a unique PARTIAL result requires an explicit click. Enter twice must
   // never turn a suffix into an unintended print or grading selection.
   updateLaptopCodeResults(value);
+  if(!matches.total && STATE.sharedStorageError) {
+    setAppMessage('This code is not in the work list saved on this computer. The connection is unavailable, so the latest batch could not be checked. Keep working with available devices or ask a manager to restore the latest work list.', 'warning');
+    render();
+  }
   return false;
 }
 function scheduleScanSearch(value) {
@@ -1149,22 +1180,13 @@ async function handleAction(action, el) {
   }
   if(action==='restore_work_backup') {
     if(!isAdminUser() || !canWorkLocally())return;
-    if(STATE.sharedSyncPending){setAppMessage('Download and synchronize pending local work before restoring another backup.','warning');render();return;}
     const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
     input.onchange=()=>runUiAction(el, async()=>{
-      const previousBackup=readLocalDemoStateBackup();
       try {
         const state=JSON.parse(await input.files[0].text());
-        if(state.storageFormat!==3 || state.workspaceId!==STATE.sharedWorkspaceId || state._recoveryScope==='accounts-only' ||
-          !Array.isArray(state.batches) || !Array.isArray(state.monitorBatches) || state._pendingRecordMutation)
-          throw Error('invalid backup');
-        const batches=state.batches.map(normalizeSharedBatch),monitorBatches=state.monitorBatches.map(normalizeSharedMonitorBatch);
-        if(batches.some(batch=>!batch) || monitorBatches.some(batch=>!batch))throw Error('invalid batch');
-        const restored={...state,batches,monitorBatches,users:USERS.map(serializeUser),_workInventoryComplete:true};
-        if(!await saveLocalDemoStateBackup(restored)){durableBackup=previousBackup;throw Error('local storage unavailable');}
-        applySharedDemoState(restored);lastSharedStateSnapshot=restored;STATE.offlineManualOnly=false;
-        setAppMessage('Work lists restored locally. No server records were replaced.','success');
-      }catch{setAppMessage('Use a complete work backup from the same workspace without pending changes. Nothing was replaced.','warning');}
+        if(!await restoreLocalWorkLists(state))return;
+        setAppMessage('Work lists restored locally. Existing work and accounts were kept; work from the other computer was not imported.','success');
+      }catch{setAppMessage('Use a work backup from the same workspace. Your existing work was kept.','warning');}
       render();
     }, {key:'restore-work-backup',label:'Importing...'});input.click();return;
   }

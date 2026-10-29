@@ -342,6 +342,36 @@ test('employee login and manager password administration remain reliable on a sh
       assert.match(vm.runInContext('STATE.appMessage.text',app),/Incorrect account/);
       assert.equal(JSON.parse(app.localStorage.getItem('remarktOfflineLoginV1'))['staff-8'],undefined);
     });
+    await t.test('a real second workstation refreshes a newly imported batch on scan and keeps cached scanning during a storage outage',async()=>{
+      const account=staff[10],app=loadAppSandbox({gzip:true,indexedDB:new IDBFactory()});
+      app.URLSearchParams=URLSearchParams;const calls=[];
+      app.account=account;app.token=issueSession(account,'login-qa');
+      vm.runInContext("STATE.currentUser=account;STATE.serverAuth=true;STATE.storageFormat=3;STATE.sharedWorkspaceId='login-qa';STATE.currentScreen='scan';setLiveSessionToken(token);",app);
+      app.fetch=async(url,options={})=>{
+        calls.push(url);
+        const result={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(code){this.statusCode=code;return this;},json(data){this.data=data;}};
+        await directory({method:options.method||'GET',url,headers:{authorization:options.headers?.Authorization}},result);
+        return new Response(JSON.stringify(result.data),{status:result.statusCode,headers:result.headers});
+      };
+      assert.equal(await app.loadRecordState(),true);
+      assert.equal(app.getLaptopBySticker('NEWEST-QA-300'),null);
+      await store.merge({mutationId:randomUUID(),operations:[
+        {collection:'batches',id:'latest-work',expectedRevision:0,payload:{id:'latest-work',nummer:'LATEST',leverancier:'Synthetic'}},
+        {collection:'laptops',id:'["latest-work","NEWEST-QA-300"]',batchId:'latest-work',expectedRevision:0,
+          payload:{sticker:'NEWEST-QA-300',serial:'LATEST-QA-SN',merk:'HP',model:'QA',batchId:'latest-work',batchNummer:'LATEST'}}
+      ]});
+      await app.submitLaptopCode('NEWEST-QA-300');
+      assert.equal(vm.runInContext('STATE.currentScreen',app),'laptop_info');
+      assert.equal(vm.runInContext('STATE.currentLaptop.sticker',app),'NEWEST-QA-300');
+      assert.equal(calls.filter(url=>url.endsWith('?work=1')).length,2);
+      unavailable=true;
+      vm.runInContext("recordTraceCache.clear();STATE.currentScreen='scan';STATE.currentLaptop=null;",app);
+      await app.submitLaptopCode('NEWEST-QA-300');
+      assert.equal(vm.runInContext('STATE.currentScreen',app),'laptop_info');
+      assert.equal(app.canWorkLocally(),true);
+      const before=calls.length;await app.loadRecordTrace('NEWEST-QA-300');assert.equal(calls.length,before);
+      unavailable=false;
+    });
     await t.test('refresh restores only a server-verified session without password or expiry extension',async()=>{
       const token=issueSession(staff[4],'login-qa');
       const restored=await request(undefined,token,'office',handler,'GET');

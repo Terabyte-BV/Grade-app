@@ -31,6 +31,34 @@ async function rememberOfflineLogin(user,password,workspaceId) {
 function isContinuityFailure(code) {
   return ['STORAGE_UNAVAILABLE','STORAGE_QUOTA_EXCEEDED','STORAGE_NOT_INITIALIZED','STORAGE_RATE_LIMITED'].includes(code);
 }
+async function restoreLocalWorkLists(source) {
+  if(!isAdminUser() || !canWorkLocally())return false;
+  if(source?.storageFormat!==3 || source.workspaceId!==STATE.sharedWorkspaceId || source._recoveryScope==='accounts-only' ||
+    !Array.isArray(source.batches) || !Array.isArray(source.monitorBatches))throw Error('Invalid work lists');
+  const batches=source.batches.map(normalizeSharedBatch),monitorBatches=source.monitorBatches.map(normalizeSharedMonitorBatch);
+  if(batches.some(batch=>!batch) || monitorBatches.some(batch=>!batch))throw Error('Invalid batch');
+  const before=getSharedDemoSnapshot({includeUsers:true}),baseline=lastSharedStateSnapshot,backup=readLocalDemoStateBackup();
+  const manualOnly=STATE.offlineManualOnly;
+  // Transfer inventory only. Never replay the source workstation's outbox,
+  // accounts or assessments; preserve the destination's own unsent work.
+  const inventory={batches,monitorBatches};
+  for(const collection of ['deletedBatchIds','deletedLaptopStickers','deletedMonitorBatchIds','deletedMonitorStickers'])
+    inventory[collection]=source[collection] || [];
+  const rows=clientSnapshotRecords(inventory).map(row=>({...row,
+    revision:Number(source.recordRevisions?.[recordClientIdentity(row.collection,row.id)] || 0)}));
+  try {
+    const restored=applyLoadedRecordRows(rows);
+    STATE.offlineManualOnly=manualOnly && source._workInventoryComplete===false;
+    const saved={...restored,_workInventoryComplete:!STATE.offlineManualOnly,
+      ...(STATE.pendingRecordMutation?{_pendingRecordMutation:STATE.pendingRecordMutation,
+        _recordPendingBase:lastSharedStateSnapshot,_recordMutationOptions:backup?._recordMutationOptions || {},_clientSyncPending:true}:{})};
+    if(!await saveLocalDemoStateBackup(saved))throw Error('Local storage unavailable');
+    return true;
+  } catch(error) {
+    applySharedDemoState(before);lastSharedStateSnapshot=baseline;durableBackup=backup;STATE.offlineManualOnly=manualOnly;
+    throw error;
+  }
+}
 function canWorkLocally() {
   return Boolean(STATE.offlineWork && STATE.currentUser && STATE.storageFormat===3 &&
     !STATE.localBackupError && isContinuityFailure(STATE.sharedStorageError));
@@ -119,6 +147,7 @@ function renderLocalWorkStatus() {
     <button class="storage-status-close" data-action="dismiss_local_work_notice" type="button" aria-label="Close" title="Close">${uiIcon('close')}</button>
     <span>Saved on this computer; synchronization is pending.</span>
     <button class="btn btn-secondary" data-action="download_local_backup" type="button">Download local recovery copy</button>
+    <button class="btn btn-secondary" data-action="retry_storage" type="button">Retry connection</button>
     ${isAdminUser()?'<button class="btn btn-secondary" data-action="restore_work_backup" type="button">Restore work lists</button><details><summary>Local work instructions</summary><p>Do not clear browser data. Use separate devices or batches per workstation to avoid duplicate work.</p><p>Offline sign-in is available only after a successful personal-password sign-in on this computer, for up to seven days. Account changes require the server.</p></details>':''}
     ${STATE.localSyncNeedsManager?'<p>Ask a manager to synchronize queued work from different employees on this computer.</p>':''}
     ${STATE.offlineManualOnly?'<p>No cached supplier lists are available here. Manual entry is available; ask a manager for a work backup to restore the lists.</p>':''}

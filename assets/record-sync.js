@@ -92,9 +92,10 @@ function renderRecordProtectionAlerts() {
     <p>Last verified backup: ${escapeHtml(backup?.createdAt?new Date(backup.createdAt).toLocaleString('nl-NL'):'—')}</p></details>`;
 }
 async function appFetch(url, options = {}) {
-  const method = options.method || 'GET';
+  const { timeoutMs = 20000, ...requestOptions } = options;
+  const method = requestOptions.method || 'GET';
   const token = liveSessionToken();
-  const settings = { ...options, headers: { ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } };
+  const settings = { ...requestOptions, headers: { ...(requestOptions.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } };
   const requestKey = `${method}:${url}:${token}`;
   if(method==='GET' && url==='/api/stats' && appStatsCache?.key===requestKey && appStatsCache.until>Date.now())return appStatsCache.response.clone();
   if (method === 'GET' && appReadRequests.has(requestKey)) {
@@ -105,7 +106,7 @@ async function appFetch(url, options = {}) {
     let timer, controller;
     if (typeof AbortController !== 'undefined') {
       controller = new AbortController(); settings.signal = controller.signal;
-      timer = setTimeout(() => controller.abort(), 20000);
+      timer = setTimeout(() => controller.abort(), Math.max(1000, Math.min(20000, timeoutMs)));
     }
     try {
       const response = await fetch(url, settings);
@@ -278,12 +279,12 @@ async function loadRecordHistory(pageNumber=1) {
   } catch {markSharedStorageFailure(null);return false;}
 }
 let recordLoadRequest=null;
-async function loadRecordState() {
+async function loadRecordState(options = {}) {
   if(recordLoadRequest) return recordLoadRequest;
-  recordLoadRequest=performRecordLoad();
+  recordLoadRequest=performRecordLoad(options);
   try{return await recordLoadRequest;}finally{recordLoadRequest=null;}
 }
-async function performRecordLoad() {
+async function performRecordLoad({refreshInventory=false} = {}) {
   await loadDurableBackup();
   const backup = readLocalDemoStateBackup();
   if (!liveSessionToken()) return typeof canWorkLocally==='function' && canWorkLocally();
@@ -299,7 +300,7 @@ async function performRecordLoad() {
     if (backup && !same) await archivePreviousWorkspace(backup);
     let state = same ? backup : { version: 1, workspaceId: stamp.workspaceId, storageFormat: 3, users: USERS.map(serializeUser) };
     let rows = [];
-    if (same && backup.storageRevision > 0 && backup._workInventoryComplete!==false) {
+    if (!refreshInventory && same && backup.storageRevision > 0 && backup._workInventoryComplete!==false) {
       let after = '';
       do {
         const response = await appFetch(`${SHARED_DEMO_STATE_URL}?since=${backup.storageRevision}${after ? '&after=' + encodeURIComponent(after) : ''}`, { cache: 'no-store' });
@@ -442,12 +443,19 @@ const recordTraceCache=new Map();
 async function loadRecordTrace(sticker) {
   if(typeof canWorkLocally==='function' && canWorkLocally())return true;
   if(STATE.storageFormat!==3) return true;
+  // Honor the provider's cooldown instead of retrying on every scanned device.
+  // A verified session with secured inventory can continue locally meanwhile.
+  if(appRetryAfter>Date.now()) {
+    if(!STATE.sharedStorageError)markSharedStorageFailure({code:'STORAGE_RATE_LIMITED'});
+    return typeof beginLocalWork==='function' && await beginLocalWork();
+  }
   if(!await prepareRecordRead())return false;
   const cacheKey=STATE.sharedWorkspaceId+':'+normalizeStickerCode(sticker);
   if((recordTraceCache.get(cacheKey)||0)>Date.now())return true;
   try {
-    const response=await appFetch(`${SHARED_DEMO_STATE_URL}?trace=${encodeURIComponent(normalizeStickerCode(sticker))}`,{cache:'no-store'});
+    const response=await appFetch(`${SHARED_DEMO_STATE_URL}?trace=${encodeURIComponent(normalizeStickerCode(sticker))}`,{cache:'no-store',timeoutMs:4000});
     if(!response.ok){await readStorageFailure(response);
+      if(response.status===429)markSharedStorageFailure({code:'STORAGE_RATE_LIMITED'});
       if(typeof beginLocalWork==='function' && await beginLocalWork())return true;
       return false;}
     const rows=(await response.json()).records;
